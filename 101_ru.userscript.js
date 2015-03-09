@@ -37,7 +37,7 @@ function Player(w) {
     };
     this.log("конструктор");
     this.$playsNode = null;//обьекты старого дома 
-    this.$currentPlayers = null; // обьекты нового дома 
+    this.$currentPlayers = null; // обьекты нового дома (плеера)
 
     //ищем инициализируем наши плеера , добавляем обработку событий на воспроизведение  
     this.initPlaysNode = function () {
@@ -58,16 +58,13 @@ function Player(w) {
     };
 
     this.addEventChangeStatusPlaer = function () {
-
-        obj.log("3333333333333333");
         $currentPlayers = $('.myPlayer audio');
         playMusic = $currentPlayers[0];
         playMusic.play();
-        obj.log("до");
 
         for (var i = 0, max = $currentPlayers.length; i < max; i++) {
 
-
+            //реализуем перелистывание на следующий трек 
             $currentPlayers[i].addEventListener('ended', function (x, $current) {
                 return function () {
                     obj.log("The audio has ended");
@@ -78,24 +75,19 @@ function Player(w) {
                     playMusic.play();
                 };
             }(i, $currentPlayers));//замыкаем 
-            
-             $currentPlayers[i].addEventListener('play', function () {
-              if(playMusic==this)return ;
-              playMusic.pause();
-              playMusic.currentTime=0;
-              playMusic=this;
-               
+
+            // останавливаем предидущий  плеер .
+            $currentPlayers[i].addEventListener('play', function () {
+                if (playMusic == this)
+                    return;
+                obj.log("The audio has pause");
+                playMusic.pause();
+                playMusic.currentTime = 0;
+                playMusic = this;
+
             });
-            
         }
-        
-      
-        
-        
-        obj.log("444444444444");
-
-
-
+       
     };
 
     this.addEventChangeShanelTabs();
