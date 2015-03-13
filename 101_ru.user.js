@@ -6,34 +6,23 @@
 // @author         andxbes
 // @description    
 // @include        http://101.ru/*
-// @require 		http://ajax.googleapis.com/ajax/libs/jquery/1.3/jquery.min.js
+// @require 		http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @run-at         document-end
 // ==/UserScript==
-(function (window, undefined) {
-    var w; //this window 
 
 
-    if (typeof unsafeWindow != undefined) {
-        w = unsafeWindow;
-    } else {
-        w = window;
-    }
-    if (w.self != w.top) {
-        return;
-    }
-
-    var player = new Player(w);
-
-
-})(window);
+  Player();
 
 
 
-function Player(w) {
+
+
+
+function Player() {
     var obj = this;//ссылка на текущий обьект 
     this.playMusic = null;
     this.log = function (str) {
-        w.console.info(str);
+        console.info(str);
     };
     this.log("конструктор");
     this.$playsNode = null;//обьекты старого дома 
@@ -41,6 +30,8 @@ function Player(w) {
 
     //ищем инициализируем наши плеера , добавляем обработку событий на воспроизведение  
     this.initPlaysNode = function () {
+       
+       
         $playsNode = $('[flashvars]');
 
         obj.addNodePlayer();
@@ -104,12 +95,13 @@ function Player(w) {
             var mp3 = obj.getUrl(ob);
             var id = obj.getId(mp3);
             var name = obj.getName(ob);
+            
 
             obj.log("name - " + name + "\n id - " + id + "\n url - " + mp3);
 
             panel.append('<div class="myBlock"><div class="myPlayerName" ><a>' + name + '</a>\n\
                 <a class="h3 icon add right personal-tracks" href="#" favid="' + id + '" favmodule="channel" ></a></div>\n\
-                <div class="myPlayer" ><audio id=' + id + ' src=\'' + mp3 + '\' controls  ><br/><br/></audio> \n\
+                <div class="myPlayer" ><audio id=' + id + ' src=\'' + mp3 + '\' controls ><br/><br/></audio> \n\
                 <a href=' + mp3 + ' download="' + name + '.mp3" >Скачать</a></div>');
         }
 
@@ -128,7 +120,7 @@ function Player(w) {
     };
 
     this.getName = function (node) {
-        var text = $(node).attr('text');
+        var text = $(node).text();
         return text;
     };
 
