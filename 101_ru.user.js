@@ -22,7 +22,7 @@ function Player() {
     var obj = this;//ссылка на текущий обьект 
     this.playMusic = null;
     this.log = function (str) {
-        console.info(str);
+        window.console.info(str);
     };
     this.log("конструктор");
     this.$playsNode = null;//обьекты старого дома 
