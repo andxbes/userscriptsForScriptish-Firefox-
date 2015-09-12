@@ -42,7 +42,7 @@ function Player() {
     //при смене вкладки(привязываем обработчик события) или загрузке страницы запускает процесс построения DOM
     this.addEventChangeShanelTabs = function () {
 
-        $('#channel_tabs ,a.js:nth-child(2)').click(function () {
+        $('#channel_tabs , .tab-item').click(function () {
            
             
             setTimeout(obj.initPlaysNode, 1000);
