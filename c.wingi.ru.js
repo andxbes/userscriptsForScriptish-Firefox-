@@ -12,8 +12,20 @@
 (function($) {
     'use strict';
     // Your code here...
-    $('.notification-dialog-background , #publish').remove();
-    $('.notification-dialog').css('top','10%');
+    function some(){
+        var el = $('#post-lock-dialog');
+        if(el.css('display')=='block'){
+            
+            var blackQ = $('.notification-dialog-background');
+            var publichButton = $('#publish');
+            if(blackQ.length > 0 && publichButton.length > 0 ){
+               blackQ.remove();
+               publichButton.remove();
+               $('.notification-dialog').css('top','10%');
+               console.info('убираем');
+            }
+      }
 
-  
+    }
+   var timerId=setInterval(some, 3000); 
 })(jQuery);
