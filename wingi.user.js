@@ -1,6 +1,7 @@
 // ==UserScript==
 // @name        c.wingi.ru
 // @namespace   work
+// @author         andxbes
 // @include     http://c.wingi.ru/*
 // @version     1
 // @grant       none
