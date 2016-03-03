@@ -1,6 +1,5 @@
 // ==UserScript==
-// @id             101.ru
-// @name           101.ru
+// @id           c.wingi.ru             
 // @name         Убираем блокировку на c.wingi.ru
 // @namespace    http://tampermonkey.net/
 // @version      0.1
