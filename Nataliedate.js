@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Nataliedate
 // @namespace    http://tampermonkey.net/
-// @version      0.2
+// @version      0.3
 // @description  try to take over the world!
 // @author       andxbes
 // @match        https://nataliedate.com/*
@@ -12,15 +12,7 @@
 
 (function() {
     'use strict';
-
-    //function confirmDialog(msg) {
-    //    return new Promise(function (resolve, reject) {
-    //        let confirmed = window.confirm(msg);
-
-    //        return confirmed ? resolve(true) : reject(false);
-    //    });
-    //}
-
+    
     const STORAGE_KEY = 'user_settings_andxbes';
     const CHAT_EXCEPTION = 'chat_exeption';
     const CHAT_INFOS = 'chatinfos';
@@ -194,10 +186,6 @@
 
     function process(next_index = 0){
         if(dup_profiles){
-            //settings.prem_profiles.forEach(profile => {
-            //  console.warn('-----------------',profile);
-            //get_chat_info(profile);
-            //});
             if(next_index < dup_profiles.length){
                 setTimeout(function(){
                     let profile = dup_profiles[next_index];
@@ -207,9 +195,6 @@
 
                 },1000);
             }
-
-            //get_chat_info('1334550');
-            //get_chat_info('83961043');
         }
     }
 
@@ -295,17 +280,11 @@
 
     }
 
-
-    //get_chat_info(83940204);
-    //get_chat_info(83961043);
-
     /*send
     POST
     https://engbkprod2.azurewebsites.net/api/chats/-358302642/messages
     with tocken
     and body
     content: text
-
-
     */
 })();
