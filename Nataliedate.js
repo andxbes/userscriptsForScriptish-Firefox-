@@ -12,7 +12,7 @@
 
 (function() {
     'use strict';
-    
+
     const STORAGE_KEY = 'user_settings_andxbes';
     const CHAT_EXCEPTION = 'chat_exeption';
     const CHAT_INFOS = 'chatinfos';
@@ -186,6 +186,7 @@
 
     function process(next_index = 0){
         if(dup_profiles){
+
             if(next_index < dup_profiles.length){
                 setTimeout(function(){
                     let profile = dup_profiles[next_index];
@@ -195,6 +196,7 @@
 
                 },1000);
             }
+
         }
     }
 
@@ -246,7 +248,9 @@
         //------------------------------------------------------- Перебор юзеров ------------------------------------------------------------------------
         process();
 
-    }else{
+    }
+
+    if(location.pathname.indexOf('/profile/') !== -1 && location.pathname !== '/profile/' + get_curent_id()){
         const queryString = window.location.search;
         const urlParams = new URLSearchParams(queryString);
         const self_count = urlParams.get('self_count');
@@ -286,5 +290,10 @@
     with tocken
     and body
     content: text
+
+
     */
+
+
+
 })();
