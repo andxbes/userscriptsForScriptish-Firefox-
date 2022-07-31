@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Nataliedate
 // @namespace    http://tampermonkey.net/
-// @version      0.4
+// @version      0.5
 // @description  try to take over the world!
 // @author       andxbes
 // @match        https://nataliedate.com/*
@@ -40,6 +40,10 @@
         return result;
     };
 
+    function get_visit_token(){
+        return JSON.parse(localStorage.getItem("visitToken"))?.token;
+    }
+
     function get_curent_id(){
         let result = null;
 
@@ -49,6 +53,19 @@
 
         return result;
     };
+
+
+    function set_frases(){
+        let frases = [];
+        if(settings?.frases.length > 0 && confirm(`Оставить предыдущие фразы ?\n${settings.frases.join('\n ---------------- \n')} `) ){
+            frases = settings.frases;
+        }else{
+            frases.push(prompt('Введите первую фразу', ''));
+            frases.push(prompt('Введите вторую фразу, добивная', ''));
+        }
+        return frases;
+
+    }
 
     //Получаем историю переписки
     function get_chat_info(user_id){
@@ -88,14 +105,14 @@
                 .catch(error => {
                 //console.error(error);
                 if(error === CHAT_EXCEPTION){
-                    get_chat_info__2(user_id);
+                    get_chat_info__2(user_id, send_message);
                 }
             });
         }
     }
 
     //Если первая ссылка не отдает список , последний способ узнать о наличии сообщений , проверить послдеднее сообщение , и если его нет , то это 100% нужно отправить 1 е
-    function get_chat_info__2(user_id){
+    function get_chat_info__2(user_id, func){
         //https://engbkprod2.azurewebsites.net/api/chatinfos/profile/1334550
 
         if(user_id){
@@ -107,7 +124,7 @@
                 }
             })
                 .then(response => {
-                console.warn(response);
+                // console.warn(response);
                 if(response.ok !== true){
                     throw CHAT_INFOS;
                 }
@@ -124,9 +141,9 @@
 
 
                 if(need_send_messages(messages) || messages.length == 0){
-                    console.warn('Надо отправить', messages,'всего сообщений ',messages.length );
+                    console.warn('Надо отправить' , user_id , messages, 'всего сообщений ',messages.length );
 
-                    send_message(user_id, messages);
+                    func(user_id, messages);
                 }else{
                     console.warn('Не нужно отправлять', user_id , messages);
                 }
@@ -156,12 +173,12 @@
             let you_messages = messages.filter(x => {
                 return x.profileId == get_curent_id()
             });
-
-            let current = new Date();
-            let last = new Date(you_messages[0].creationDate);
-
-            let diffInhours = Math.floor((current - last)/ (1000 * 60 * 60));
-
+            let diffInhours = 99;
+            if(you_messages.length > 0){
+                let current = new Date();
+                let last = new Date(you_messages[0].creationDate);
+                diffInhours = Math.floor((current - last)/ (1000 * 60 * 60));
+            }
             let last_24 = diffInhours > 24;
 
             console.warn('последнее сообщение отправлено ', diffInhours, 'есть сообщение клиента' , !only_you_messages, 'твоих сообщений', you_messages);
@@ -171,15 +188,138 @@
         return result;
     }
 
+
+    function select_frase(last_message){
+        let result = '';
+        let frases = settings?.frases;
+
+        if(frases.length > 0){
+            let index = -1;
+            if(last_message.trim() == ''){
+                result = frases[0];
+            }else if((index = frases.indexOf(last_message)) >= 0 && ++index < frases.length){
+                result = frases[index];
+            }
+        }
+        return result;
+    }
+
+
     function send_message(user_id, messages = []){
+
+        console.warn(messages);
 
         let you_messages = messages.filter(x => {
             return x.profileId == get_curent_id()
         });
         let self_count = you_messages.length;
+        if(self_count > 0 ){
 
-        let win = window.open(`https://nataliedate.com/profile/${user_id}?self_count=${self_count}`);
+            let last_messaage = you_messages[self_count-1];
+            let frase = select_frase(last_messaage?.content);
+
+            send_to_chatid(last_messaage?.chatId, frase, (body) => {
+                console.warn('Отправлено добивочное',user_id , body);
+                //let win = window.open(`https://nataliedate.com/profile/${user_id}?self_count=${self_count}`);
+            } );
+        }else if(messages.length === 0){
+            //let win = window.open(`https://nataliedate.com/profile/${user_id}?self_count=${self_count}`);
+
+
+            send_new_message(user_id, select_frase(''), (body) => {
+                console.warn('Отправлено первое', user_id , body);
+                //let win = window.open(`https://nataliedate.com/profile/${user_id}?self_count=${self_count}`);
+            } );
+
+        }
+
+
+
+        //let win = window.open(`https://nataliedate.com/profile/${user_id}?self_count=${self_count}`);
     }
+
+    function send_new_message(profile, message, func){
+
+        console.warn(profile, message);
+        // return;
+
+        if(profile !== '' && message !== ''){
+            let form_data = new FormData();
+            form_data.append('content', message);
+
+            fetch(`https://engbkprod2.azurewebsites.net/api/chats/messages/${profile}`, {
+                method: 'POST',
+                cache: 'no-cache',
+
+                headers: {
+                    "authorization": "Bearer " + get_user_tocken(),
+                    'visit-token' : get_visit_token(),
+                },
+                body:  form_data
+            })
+                .then(response => {
+                //console.warn(response);
+                if(response.ok !== true){
+                    throw CHAT_INFOS;
+                }
+
+                return response.json()
+            })
+                .then(body => {
+
+                func(body);
+
+            })
+                .catch(error => {
+
+                console.error(error);
+
+            });
+        }
+    }
+
+
+    function send_to_chatid(chatid, message, func){
+        if(chatid !== '' && message !== ''){
+            // console.warn(chatid, message);
+
+            let form_data = new FormData();
+            form_data.append('content',message);
+
+            fetch(`https://engbkprod2.azurewebsites.net/api/chats/${chatid}/messages`, {
+                method: 'POST',
+                cache: 'no-cache',
+
+                headers: {
+                    "authorization": "Bearer " + get_user_tocken(),
+                    'visit-token' : get_visit_token(),
+                },
+                body:  form_data
+            })
+                .then(response => {
+                //console.warn(response);
+                if(response.ok !== true){
+                    throw CHAT_INFOS;
+                }
+
+                return response.json()
+            })
+                .then(body => {
+
+                func(body);
+
+            })
+                .catch(error => {
+
+                console.error(error);
+
+            });
+
+        }
+    }
+
+
+
 
     let next_index = 0;
 
@@ -191,7 +331,7 @@
                 setTimeout(function(){
                     let profile = dup_profiles[next_index];
                     console.warn('-----------------', profile);
-                    get_chat_info(profile);
+                    get_chat_info__2(profile, send_message);
                     process(++next_index);
 
                 },1000);
@@ -211,7 +351,7 @@
             settings.prem_profiles.splice(myIndex, 1);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
         }
-        console.warn('remove settings',settings);
+        // console.warn('remove settings',settings);
     }
 
 
@@ -223,16 +363,10 @@
         if(!Array.isArray(settings?.prem_profiles) || settings.prem_profiles.length == 0){
             let prem_profiles = prompt('Введите идентификаторы премиум юзеров, разделяя пробелами', '')?.match(/\d{1,}/gs);
             prem_profiles = Array.from(new Set(prem_profiles));//уникальные id
-            if(prem_profiles){
+            if(prem_profiles && prem_profiles.length > 0){
                 //localStorage.setItem("prem_profiles",JSON.stringify(prem_profiles));
 
-                let frases = [];
-                if(settings?.frases.length > 0 && confirm(`Оставить предыдущие фразы ?\n${settings.frases.join('\n ---------------- \n')} `) ){
-                    frases = settings.frases;
-                }else{
-                    frases.push(prompt('Введите первую фразу', ''));
-                    frases.push(prompt('Введите вторую фразу, добивная', ''));
-                }
+                let frases = set_frases();
 
                 if(confirm(`Запустить процесс рассылки с параметрами? \n Фразы:\n${frases.join('\n ---------------- \n')} \n Профили:\n${prem_profiles.join(', \n')} `)){
                     settings = {
@@ -250,12 +384,18 @@
 
     }
 
+    //страницы юзеров
     if(location.pathname.indexOf('/profile/') !== -1 && location.pathname !== '/profile/' + get_curent_id()){
+
+        let profile = location.pathname.match(/\d{3,}/i)[0];
+
         const queryString = window.location.search;
         const urlParams = new URLSearchParams(queryString);
         const self_count = urlParams.get('self_count');
         if(typeof self_count !== 'undefined' && self_count >= 0){
             window.addEventListener('load',function(){
+
+                get_chat_info__2(profile, send_message);
 
                 setTimeout(function(){
 
@@ -283,17 +423,14 @@
         }
 
     }
+    //search
 
-    /*send
-    POST
-    https://engbkprod2.azurewebsites.net/api/chats/-358302642/messages
-    with tocken
-    and body
-    content: text
+    if(location.pathname.indexOf('/search') !== -1 ){
+        console.error('/search');
 
+        let frases = set_frases();
 
-    */
-
-
+        //https://nataliedate-search.azurewebsites.net/profiles/suitable?itemsPerPage=100&page=1&profileId=3597812
+    }
 
 })();
