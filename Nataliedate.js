@@ -13,13 +13,13 @@
 (function() {
     'use strict';
 
-    const STORAGE_KEY = 'user_settings_andxbes';
+    const STORAGE_KEY = 'user_settings_andxbes_';
     const CHAT_EXCEPTION = 'chat_exeption';
     const CHAT_INFOS = 'chatinfos';
 
     let last_profile = 0;
 
-    let settings = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    let settings = JSON.parse(localStorage.getItem(STORAGE_KEY + get_curent_id()));
     let dup_profiles = [];
 
     function get_user_tocken(){
@@ -29,8 +29,6 @@
             //TODO токен выдается на 5 минут, далее сам на странице обновляется
             let expires = user[".expires"];
             let tocken = user?.access_token;
-
-            console.log(expires);
 
             if(tocken){
                 result = tocken;
@@ -57,11 +55,15 @@
 
     function set_frases(){
         let frases = [];
-        if(settings?.frases.length > 0 && confirm(`Оставить предыдущие фразы ?\n${settings.frases.join('\n ---------------- \n')} `) ){
+        if(settings?.frases.length > 0 && confirm(`Оставить предыдущие фразы ?\n${settings.frases.join('\n ---------------------- \n')} `) ){
             frases = settings.frases;
         }else{
             frases.push(prompt('Введите первую фразу', ''));
-            frases.push(prompt('Введите вторую фразу, добивная', ''));
+
+            for(let i=1 ;confirm(`Добавить следующую добивную фразу в цепочку ?`); i++){
+                frases.push(prompt(`Введите добивную фразу №${i}`, ''));
+            }
+            
         }
         return frases;
 
@@ -330,7 +332,7 @@
             if(next_index < dup_profiles.length){
                 setTimeout(function(){
                     let profile = dup_profiles[next_index];
-                    console.warn('-----------------', profile);
+                    console.warn(`-------- get_chat_info__2( ${profile} ) ---------`);
                     get_chat_info__2(profile, send_message);
                     process(++next_index);
 
@@ -349,7 +351,7 @@
         var myIndex = settings?.prem_profiles.indexOf(user_id);
         if (myIndex !== -1) {
             settings.prem_profiles.splice(myIndex, 1);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+            localStorage.setItem(STORAGE_KEY + get_curent_id(), JSON.stringify(settings));
         }
         // console.warn('remove settings',settings);
     }
@@ -364,7 +366,6 @@
             let prem_profiles = prompt('Введите идентификаторы премиум юзеров, разделяя пробелами', '')?.match(/\d{1,}/gs);
             prem_profiles = Array.from(new Set(prem_profiles));//уникальные id
             if(prem_profiles && prem_profiles.length > 0){
-                //localStorage.setItem("prem_profiles",JSON.stringify(prem_profiles));
 
                 let frases = set_frases();
 
@@ -373,7 +374,7 @@
                         "prem_profiles": prem_profiles,
                         "frases": frases
                     };
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+                    localStorage.setItem(STORAGE_KEY + get_curent_id(), JSON.stringify(settings));
                 }
             }
         }
@@ -429,8 +430,10 @@
         console.error('/search');
 
         let frases = set_frases();
+        alert(frases);
 
         //https://nataliedate-search.azurewebsites.net/profiles/suitable?itemsPerPage=100&page=1&profileId=3597812
     }
+
 
 })();
