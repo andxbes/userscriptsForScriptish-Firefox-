@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Nataliedate
 // @namespace    http://tampermonkey.net/
-// @version      0.5
+// @version      0.6
 // @description  try to take over the world!
 // @author       andxbes
 // @match        https://nataliedate.com/*
@@ -21,6 +21,15 @@
 
     let settings = JSON.parse(localStorage.getItem(STORAGE_KEY + get_curent_id()));
     let dup_profiles = [];
+
+    function save_data(frases=[], users=[]){
+        let settings = {
+            "prem_profiles": users,
+            "frases": frases
+        };
+        localStorage.setItem(STORAGE_KEY + get_curent_id(), JSON.stringify(settings));
+    }
+
 
     function get_user_tocken(){
         let result = null;
@@ -63,16 +72,16 @@
             for(let i=1 ;confirm(`Добавить следующую добивную фразу в цепочку ?`); i++){
                 frases.push(prompt(`Введите добивную фразу №${i}`, ''));
             }
-            
+
         }
         return frases;
 
     }
 
     //Получаем историю переписки
-    function get_chat_info(user_id){
-        if(user_id){
-            fetch('https://engbkprod2.azurewebsites.net/api/chats/' + user_id + '/messages?itemsPerPage=9&page=1&minMessageId=0' , {
+    function get_chat_info(chat_id, func){
+        if(chat_id){
+            fetch('https://engbkprod2.azurewebsites.net/api/chats/' + chat_id + '/messages?itemsPerPage=9&page=1&minMessageId=0' , {
                 method: 'GET',
                 cache: 'no-cache',
                 headers: {
@@ -91,24 +100,20 @@
 
                 if(need_send_messages(body?.items)){
 
-                    console.warn('Надо отправить', body.items,'всего сообщений ',messages.length );
+                    console.warn('Надо отправить', body.items,'всего сообщений ',body.items.length );
 
-                    send_message(user_id, body.items );
-                    //window.open(`https://nataliedate.com/chats/${user_id}/messages`);
+                    func(body.items);
 
                 }else{
-                    console.warn('Не нужно отправлять',user_id , body.items);
+                    //console.warn('Не нужно отправлять',chat_id , body.items);
                 }
 
 
-                remove_settings(user_id);
+                //remove_settings(user_id);
 
             })
                 .catch(error => {
-                //console.error(error);
-                if(error === CHAT_EXCEPTION){
-                    get_chat_info__2(user_id, send_message);
-                }
+                console.error(error);
             });
         }
     }
@@ -147,7 +152,7 @@
 
                     func(user_id, messages);
                 }else{
-                    console.warn('Не нужно отправлять', user_id , messages);
+                    //console.warn('Не нужно отправлять', user_id , messages);
                 }
 
                 remove_settings(user_id);
@@ -183,7 +188,7 @@
             }
             let last_24 = diffInhours > 24;
 
-            console.warn('последнее сообщение отправлено ', diffInhours, 'есть сообщение клиента' , !only_you_messages, 'твоих сообщений', you_messages);
+            //console.warn('последнее сообщение отправлено ', diffInhours, 'есть сообщение клиента' , !only_you_messages, 'твоих сообщений', you_messages);
 
             result = only_you_messages && last_24 && you_messages.length < 2;
         }
@@ -204,6 +209,76 @@
             }
         }
         return result;
+    }
+
+
+
+
+    function get_unpaid_only_users( func, perPage = 100, page = 0){
+        fetch(`https://engbkprod2.azurewebsites.net/api/chats/me?page=${page}&perPage=${perPage}&unreadOnly=false&unpaidOnly=true&paidOnly=false&onlineOnly=false&retentionOnly=false&dialogOnly=false&favoriteOnly=false&answerFirstOnly=false&disabledFilters=paid,retain,favorite`, {
+            method: 'GET',
+            cache: 'no-cache',
+
+            headers: {
+                "authorization": "Bearer " + get_user_tocken(),
+                //'visit-token' : get_visit_token(),
+            },
+            //body:  form_data
+        })
+            .then(response => {
+            if(response.ok !== true){
+                throw CHAT_INFOS;
+            }
+
+            return response.json()
+        })
+            .then(body => {
+
+            func(body, page).then(
+                () => {
+                    if(body.items.length > 0 ){
+                        get_unpaid_only_users(func, perPage, ++page);
+                    }else{
+                        throw "Конец чатов";
+                    }
+                }
+            );
+
+        })
+            .catch(error => {
+
+            console.error('END' , error);
+
+        });
+
+
+    }
+
+
+    async function process_chats(body,page){
+        console.warn('process on ' + page , body);
+        if(body?.items && body.items.length > 0 ){
+
+            body.items.forEach(chat=>{
+
+                let messages = new Array();
+
+                if(chat.lastMessage){
+                    messages.push(chat.lastMessage);
+                }
+
+                let user_id = chat.recipientProfileId;
+
+                if(need_send_messages(messages) || messages.length == 0){
+                    console.warn('Надо отправить' , user_id , messages, 'всего сообщений ',messages.length );
+
+                    send_message(user_id, messages);
+                }else{
+                    //console.warn('Не нужно отправлять', user_id , messages);
+                }
+            });
+        }
+        await sleep(5000);
     }
 
 
@@ -342,6 +417,11 @@
         }
     }
 
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
     const trigger = (el, etype, custom) => {
         const evt = custom ?? new Event( etype, { bubbles: true } );
         el.dispatchEvent( evt );
@@ -434,6 +514,24 @@
 
         //https://nataliedate-search.azurewebsites.net/profiles/suitable?itemsPerPage=100&page=1&profileId=3597812
     }
+
+
+
+    if(location.pathname.indexOf('/chats') !== -1 ){
+        console.error('/chats');
+        let frases = set_frases();
+
+        save_data(frases);
+        if(confirm(`Запустить процесс рассылки с параметрами? \n Фразы:\n${frases.join('\n ---------------- \n')} \n`)){
+
+
+            get_unpaid_only_users(process_chats,25,0);
+
+            // items[0].lastMessage
+        }
+
+    }
+
 
 
 })();
