@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Nataliedate
 // @namespace    http://tampermonkey.net/
-// @version      0.6
+// @version      0.7
 // @description  try to take over the world!
 // @author       andxbes
 // @match        https://nataliedate.com/*
@@ -22,14 +22,36 @@
     let settings = JSON.parse(localStorage.getItem(STORAGE_KEY + get_curent_id()));
     let dup_profiles = [];
 
+
+    let errorfrasses = [];
+    let allSuccsessSended = 0;
+
     function save_data(frases=[], users=[]){
+        if(users.lenght > 0 ){
+            users = Array.from(new Set(users));
+        }
+
         let settings = {
             "prem_profiles": users,
             "frases": frases
         };
+
         localStorage.setItem(STORAGE_KEY + get_curent_id(), JSON.stringify(settings));
+
+        return settings;
     }
 
+
+    function array_column(a,i,ok) {
+        return a.reduce((c,v,k) => {
+            if(ok===undefined) {
+                c[k]=v[i];
+            } else {
+                c[v[ok]]=v[i]
+            }
+            return c;
+        }, [] )
+    }
 
     function get_user_tocken(){
         let result = null;
@@ -70,7 +92,10 @@
             frases.push(prompt('Введите первую фразу', ''));
 
             for(let i=1 ;confirm(`Добавить следующую добивную фразу в цепочку ?`); i++){
-                frases.push(prompt(`Введите добивную фразу №${i}`, ''));
+                let fr = prompt(`Введите добивную фразу №${i}`, '');
+                if(fr !== null && fr !== ''){
+                    frases.push(fr);
+                }
             }
 
         }
@@ -186,11 +211,11 @@
                 let last = new Date(you_messages[0].creationDate);
                 diffInhours = Math.floor((current - last)/ (1000 * 60 * 60));
             }
-            let last_24 = diffInhours > 24;
+            let last_12 = diffInhours > 12;
 
             //console.warn('последнее сообщение отправлено ', diffInhours, 'есть сообщение клиента' , !only_you_messages, 'твоих сообщений', you_messages);
 
-            result = only_you_messages && last_24 && you_messages.length < 2;
+            result = only_you_messages && last_12 && you_messages.length < 2;
         }
         return result;
     }
@@ -208,10 +233,18 @@
                 result = frases[index];
             }
         }
+
+        if(result === ''){
+
+            if(errorfrasses[last_message] !== undefined){
+                errorfrasses[last_message]++;
+            }else{
+                errorfrasses[last_message] = 1;
+            }
+        }
+
         return result;
     }
-
-
 
 
     function get_unpaid_only_users( func, perPage = 100, page = 0){
@@ -242,12 +275,18 @@
                         throw "Конец чатов";
                     }
                 }
-            );
+            ).catch(error => {
+
+                console.error('START SENDING' , error);
+                send_message_fetch();
+
+            });
 
         })
             .catch(error => {
 
             console.error('END' , error);
+
 
         });
 
@@ -270,7 +309,7 @@
                 let user_id = chat.recipientProfileId;
 
                 if(need_send_messages(messages) || messages.length == 0){
-                    console.warn('Надо отправить' , user_id , messages, 'всего сообщений ',messages.length );
+                    // console.warn('Надо отправить' , user_id , messages, 'всего сообщений ',messages.length );
 
                     send_message(user_id, messages);
                 }else{
@@ -278,49 +317,97 @@
                 }
             });
         }
-        await sleep(5000);
+        await sleep(1000);
     }
 
 
+    let all_user_nedded_to_send_massage = [];
     function send_message(user_id, messages = []){
+        all_user_nedded_to_send_massage.push(
+            {
+                'user_id': user_id,
+                'messages': messages
+            }
+        );
+    }
 
-        console.warn(messages);
+    function send_message_fetch(index = 0){
 
-        let you_messages = messages.filter(x => {
-            return x.profileId == get_curent_id()
-        });
-        let self_count = you_messages.length;
-        if(self_count > 0 ){
+        if(index < all_user_nedded_to_send_massage.length){
 
-            let last_messaage = you_messages[self_count-1];
-            let frase = select_frase(last_messaage?.content);
+            let current = all_user_nedded_to_send_massage[index];
 
-            send_to_chatid(last_messaage?.chatId, frase, (body) => {
-                console.warn('Отправлено добивочное',user_id , body);
+            //console.warn('Отправляем',index , current);
+
+            let user_id = current.user_id;
+            let messages = current.messages;
+
+            let you_messages = messages.filter(x => {
+                return x.profileId == get_curent_id()
+            });
+            let self_count = you_messages.length;
+
+            if(self_count > 0 ){
+
+                let last_messaage = you_messages[self_count-1];
+                let frase = select_frase(last_messaage?.content);
+
+                //console.warn('Попытка отправить ',user_id , last_messaage?.chatId, frase);
+                send_to_chatid(last_messaage?.chatId, frase,
+                               (body) => {
+                    //console.warn('Отправлено добивочное',user_id , body,' Предыдущее сообщение: ', messages);
+                    allSuccsessSended++;
+
+                    setTimeout(function(){
+                        send_message_fetch(++index);
+                    },100);
+
+                } ,
+                               (error) => {
+                    //console.error(error);
+                    setTimeout(function(){
+                        send_message_fetch(++index);
+                    },100);
+                });
+            }else if(messages.length === 0){
                 //let win = window.open(`https://nataliedate.com/profile/${user_id}?self_count=${self_count}`);
-            } );
-        }else if(messages.length === 0){
-            //let win = window.open(`https://nataliedate.com/profile/${user_id}?self_count=${self_count}`);
+
+                send_new_message(user_id, select_frase(''),
+                                 (body) => {
+                    console.warn('Отправлено первое', user_id , body,' Предыдущее сообщение: ', messages);
+                    allSuccsessSended++;
+
+                    send_message_fetch(++index);
+
+                    //let win = window.open(`https://nataliedate.com/profile/${user_id}?self_count=${self_count}`);
+                },
+                                 (error) => {
+                    //console.error(error);
+                    setTimeout(function(){
+                        send_message_fetch(++index);
+                    },100);
+                } );
+
+            }
 
 
-            send_new_message(user_id, select_frase(''), (body) => {
-                console.warn('Отправлено первое', user_id , body);
-                //let win = window.open(`https://nataliedate.com/profile/${user_id}?self_count=${self_count}`);
-            } );
 
+        }else{
+            console.warn('Отправлено сообщений', allSuccsessSended);
+            console.warn('Ошибочных фраз', errorfrasses.filter(a => a > 100));
         }
-
-
 
         //let win = window.open(`https://nataliedate.com/profile/${user_id}?self_count=${self_count}`);
     }
 
-    function send_new_message(profile, message, func){
 
-        console.warn(profile, message);
+
+    function send_new_message(profile, message, func, errorf){
+
+        //console.warn(profile, message);
         // return;
 
-        if(profile !== '' && message !== ''){
+        if(profile !== '' && message !== '' && message !== null && message !== 'null'){
             let form_data = new FormData();
             form_data.append('content', message);
 
@@ -348,16 +435,16 @@
 
             })
                 .catch(error => {
-
-                console.error(error);
-
+                errorf(error);
             });
+        }else{
+            errorf('Пустое собщение или пустой идинтификатор юзера');
         }
     }
 
 
-    function send_to_chatid(chatid, message, func){
-        if(chatid !== '' && message !== ''){
+    function send_to_chatid(chatid, message, func, errorf){
+        if(chatid !== '' && message !== '' && message !== null && message !== 'null'){
             // console.warn(chatid, message);
 
             let form_data = new FormData();
@@ -387,13 +474,48 @@
 
             })
                 .catch(error => {
-
-                console.error(error);
-
+                errorf(error);
             });
 
+        }else{
+            errorf('Пустое собщение или пустой индификатор чата');
         }
     }
+
+    function get_users_by_search( func, perPage = 100){
+
+        fetch(`https://nataliedate-search.azurewebsites.net/profiles/suitable?itemsPerPage=${perPage}&page=1&profileId=${get_curent_id()}`, {
+            method: 'GET',
+            cache: 'no-cache',
+
+            headers: {
+                "authorization": "Bearer " + get_user_tocken(),
+                //'visit-token' : get_visit_token(),
+            },
+            //body:  form_data
+        })
+            .then(response => {
+            if(response.ok !== true){
+                throw 'Search Error';
+            }
+
+            return response.json()
+        })
+            .then(body => {
+
+            func(body);
+        })
+            .catch(error => {
+
+            console.error('END' , error);
+
+
+        });
+    }
+
+    //like
+
+    //POST https://nataliedate.com/api/profile/likes/me/3990300
 
 
 
@@ -407,11 +529,13 @@
             if(next_index < dup_profiles.length){
                 setTimeout(function(){
                     let profile = dup_profiles[next_index];
-                    console.warn(`-------- get_chat_info__2( ${profile} ) ---------`);
+                    //console.warn(`-------- get_chat_info__2( ${profile} ) ---------`);
                     get_chat_info__2(profile, send_message);
                     process(++next_index);
 
                 },1000);
+            }else{
+                send_message_fetch();
             }
 
         }
@@ -450,16 +574,12 @@
                 let frases = set_frases();
 
                 if(confirm(`Запустить процесс рассылки с параметрами? \n Фразы:\n${frases.join('\n ---------------- \n')} \n Профили:\n${prem_profiles.join(', \n')} `)){
-                    settings = {
-                        "prem_profiles": prem_profiles,
-                        "frases": frases
-                    };
-                    localStorage.setItem(STORAGE_KEY + get_curent_id(), JSON.stringify(settings));
+                    settings = save_data(frases, prem_profiles);
                 }
             }
         }
 
-        dup_profiles = settings?.prem_profiles?.slice();
+        dup_profiles = settings.prem_profiles.slice();
         //------------------------------------------------------- Перебор юзеров ------------------------------------------------------------------------
         process();
 
@@ -504,31 +624,61 @@
         }
 
     }
-    //search
 
-    if(location.pathname.indexOf('/search') !== -1 ){
-        console.error('/search');
 
+    if(location.pathname.indexOf('/chats') !== -1 && confirm('Запустить процесс расссылки по чатам?')){
+        console.error('/chats');
         let frases = set_frases();
-        alert(frases);
+        settings = save_data(frases);
 
-        //https://nataliedate-search.azurewebsites.net/profiles/suitable?itemsPerPage=100&page=1&profileId=3597812
+        if(confirm(`Запустить процесс рассылки с параметрами? \n Фразы:\n${frases.join('\n ---------------- \n')} \n`)){
+            get_unpaid_only_users(process_chats,500,0);
+        }
+
     }
 
 
 
-    if(location.pathname.indexOf('/chats') !== -1 ){
-        console.error('/chats');
-        let frases = set_frases();
 
-        save_data(frases);
-        if(confirm(`Запустить процесс рассылки с параметрами? \n Фразы:\n${frases.join('\n ---------------- \n')} \n`)){
+    //search
+
+    let gerl_profiles = [];
+    let search_profiles = [];
+    if(location.pathname.indexOf('/search') !== -1){
+        console.error('/search');
+
+        if(confirm('Запустить процесс расссылки по поиску?')){
+            let frases = set_frases();
+
+            if(confirm(`Запустить процесс рассылки с параметрами? \n Фразы:\n${frases.join('\n ---------------- \n')} \n`)){
+                get_users_by_search((body) => {
+                    let f_profiles = body.items.filter(el => {
+                        return el.gender==1 && el.age >= 23;
+                    });
+                    let f_gerl_profiles = body.items.filter(el => {
+                        return el.gender!=1;
+                    });
+
+                    gerl_profiles.push(...f_gerl_profiles);
+                    search_profiles.push(...f_profiles);
 
 
-            get_unpaid_only_users(process_chats,25,0);
 
-            // items[0].lastMessage
+
+                    let users = array_column(f_profiles,'profileId');
+
+                    settings = save_data(frases, users);
+                    dup_profiles = settings.prem_profiles.slice();
+                    //------------------------------------------------------- Перебор юзеров ------------------------------------------------------------------------
+                    process();
+
+                    console.warn('Анкет девушек ',gerl_profiles);
+                }, 500);
+            }
+
         }
+
+
 
     }
 
