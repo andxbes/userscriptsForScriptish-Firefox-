@@ -565,24 +565,24 @@
     if(location.pathname == '/profile/' + get_curent_id()){
 
         //------------------------------------------------------------- Ввод переменных ---------------------------------------------------------------------------
+        if(confirm('Запустить процесс расссылки по списку профилей?')){
+            if(!Array.isArray(settings?.prem_profiles) || settings.prem_profiles.length == 0){
+                let prem_profiles = prompt('Введите идентификаторы премиум юзеров, разделяя пробелами', '')?.match(/\d{1,}/gs);
+                prem_profiles = Array.from(new Set(prem_profiles));//уникальные id
+                if(prem_profiles && prem_profiles.length > 0){
 
-        if(!Array.isArray(settings?.prem_profiles) || settings.prem_profiles.length == 0){
-            let prem_profiles = prompt('Введите идентификаторы премиум юзеров, разделяя пробелами', '')?.match(/\d{1,}/gs);
-            prem_profiles = Array.from(new Set(prem_profiles));//уникальные id
-            if(prem_profiles && prem_profiles.length > 0){
+                    let frases = set_frases();
 
-                let frases = set_frases();
-
-                if(confirm(`Запустить процесс рассылки с параметрами? \n Фразы:\n${frases.join('\n ---------------- \n')} \n Профили:\n${prem_profiles.join(', \n')} `)){
-                    settings = save_data(frases, prem_profiles);
+                    if(confirm(`Запустить процесс рассылки с параметрами? \n Фразы:\n${frases.join('\n ---------------- \n')} \n Профили:\n${prem_profiles.join(', \n')} `)){
+                        settings = save_data(frases, prem_profiles);
+                    }
                 }
             }
+
+            dup_profiles = settings.prem_profiles.slice();
+            //------------------------------------------------------- Перебор юзеров ------------------------------------------------------------------------
+            process();
         }
-
-        dup_profiles = settings.prem_profiles.slice();
-        //------------------------------------------------------- Перебор юзеров ------------------------------------------------------------------------
-        process();
-
     }
 
     //страницы юзеров
