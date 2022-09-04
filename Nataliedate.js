@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Nataliedate
 // @namespace    http://tampermonkey.net/
-// @version      0.8
+// @version      0.9
 // @description  try to take over the world!
 // @author       andxbes
 // @match        https://nataliedate.com/*
@@ -291,7 +291,7 @@
             // ------------------------------------------------------- Перебор юзеров ------------------------------------------------------------------------
             await process();
         }
-        
+
     }
 
     async function send_message(user_id, messages = []){
@@ -375,7 +375,7 @@
         }
     }
 
-    function get_users_by_search( func, perPage = 100){
+    function get_users_by_search( func, perPage = 100, limit = 1000){
 
         fetch(`https://nataliedate-search.azurewebsites.net/profiles/suitable?itemsPerPage=${perPage}&page=1&profileId=${get_curent_id()}`, {
             method: 'GET',
@@ -396,7 +396,14 @@
         })
             .then(body => {
 
-            func(body);
+            func(body).then(()=>{
+                console.warn('Отправлено сообщений', allSuccsessSended);
+                if(allSuccsessSended < limit){
+                    setTimeout(()=>{
+                        get_users_by_search(func, perPage, limit);
+                    }, (1*60*1000));
+                }
+            });
         })
             .catch(error => {
 
@@ -554,19 +561,12 @@
                     gerl_profiles.push(...f_gerl_profiles);
                     search_profiles.push(...f_profiles);
 
-
-
-
                     let users = array_column(f_profiles,'profileId');
 
                     settings = save_data(frases, users);
                     dup_profiles = settings.prem_profiles.slice();
                     //------------------------------------------------------- Перебор юзеров ------------------------------------------------------------------------
-                    process().then(()=>{
-                        console.warn('Отправлено сообщений', allSuccsessSended);
-                        console.warn('Ошибочных,часто повторяемых, фраз', errorfrasses.filter(a => a > 100));
-                        console.warn('Анкет девушек ',gerl_profiles);
-                    });
+                    return process();
                 }, 500);
             }
 
