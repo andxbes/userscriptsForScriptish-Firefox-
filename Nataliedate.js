@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Nataliedate
 // @namespace    http://tampermonkey.net/
-// @version      0.7
+// @version      0.8
 // @description  try to take over the world!
 // @author       andxbes
 // @match        https://nataliedate.com/*
@@ -104,66 +104,59 @@
     }
 
     //Получаем историю переписки
-    function get_chat_info(chat_id, func){
-        if(chat_id){
-            fetch('https://engbkprod2.azurewebsites.net/api/chats/' + chat_id + '/messages?itemsPerPage=9&page=1&minMessageId=0' , {
-                method: 'GET',
-                cache: 'no-cache',
-                headers: {
-                    "authorization": "Bearer " + get_user_tocken()
-                }
-            })
-                .then(response => {
-                console.warn(response);
-                if(response.ok !== true){
-                    throw CHAT_EXCEPTION;
-                }
+    //     function get_chat_info(chat_id, func){
+    //         if(chat_id){
+    //             fetch('https://engbkprod2.azurewebsites.net/api/chats/' + chat_id + '/messages?itemsPerPage=9&page=1&minMessageId=0' , {
+    //                 method: 'GET',
+    //                 cache: 'no-cache',
+    //                 headers: {
+    //                     "authorization": "Bearer " + get_user_tocken()
+    //                 }
+    //             })
+    //                 .then(response => {
+    //                 console.warn(response);
+    //                 if(response.ok !== true){
+    //                     throw CHAT_EXCEPTION;
+    //                 }
 
-                return response.json()
-            })
-                .then(body => {
+    //                 return response.json()
+    //             })
+    //                 .then(body => {
 
-                if(need_send_messages(body?.items)){
+    //                 if(need_send_messages(body?.items)){
 
-                    console.warn('Надо отправить', body.items,'всего сообщений ',body.items.length );
+    //                     console.warn('Надо отправить', body.items,'всего сообщений ',body.items.length );
 
-                    func(body.items);
+    //                     func(body.items);
 
-                }else{
-                    //console.warn('Не нужно отправлять',chat_id , body.items);
-                }
+    //                 }else{
+    //                     //console.warn('Не нужно отправлять',chat_id , body.items);
+    //                 }
 
 
-                //remove_settings(user_id);
+    //                 //remove_settings(user_id);
 
-            })
-                .catch(error => {
-                console.error(error);
-            });
-        }
-    }
+    //             })
+    //                 .catch(error => {
+    //                 console.error(error);
+    //             });
+    //         }
+    //     }
 
     //Если первая ссылка не отдает список , последний способ узнать о наличии сообщений , проверить послдеднее сообщение , и если его нет , то это 100% нужно отправить 1 е
-    function get_chat_info__2(user_id, func){
+    async function get_chat_info__2(user_id, func){
         //https://engbkprod2.azurewebsites.net/api/chatinfos/profile/1334550
 
         if(user_id){
-            fetch('https://engbkprod2.azurewebsites.net/api/chatinfos/profile/' + user_id , {
+            let response = await fetch('https://engbkprod2.azurewebsites.net/api/chatinfos/profile/' + user_id , {
                 method: 'GET',
                 cache: 'no-cache',
                 headers: {
                     "authorization": "Bearer " + get_user_tocken()
                 }
-            })
-                .then(response => {
-                // console.warn(response);
-                if(response.ok !== true){
-                    throw CHAT_INFOS;
-                }
-
-                return response.json()
-            })
-                .then(body => {
+            });
+            if(response.ok === true){
+                let body = await response.json();
 
                 let messages = new Array();
 
@@ -171,29 +164,18 @@
                     messages.push(body.lastMessage);
                 }
 
-
                 if(need_send_messages(messages) || messages.length == 0){
-                    console.warn('Надо отправить' , user_id , messages, 'всего сообщений ',messages.length );
-
-                    func(user_id, messages);
-                }else{
-                    //console.warn('Не нужно отправлять', user_id , messages);
+                    // console.warn('Надо отправить' , user_id , messages, 'всего сообщений ',messages.length );
+                    await func(user_id, messages);
                 }
 
                 remove_settings(user_id);
-
-            })
-                .catch(error => {
-
-                console.error(error);
-
-            });
-
+            }
         }
     }
 
 
-    function need_send_messages(messages,self_count){
+    function need_send_messages(messages, self_count){
         let result = false;
         if(Array.isArray(messages) && messages.length > 0){
             let him_messages = messages.filter(x => {
@@ -272,20 +254,19 @@
                     if(body.items.length > 0 ){
                         get_unpaid_only_users(func, perPage, ++page);
                     }else{
+                        console.warn('Отправлено сообщений', allSuccsessSended);
+                        console.warn('Ошибочных,часто повторяемых, фраз', errorfrasses.filter(a => a > 100));
                         throw "Конец чатов";
                     }
                 }
             ).catch(error => {
-
-                console.error('START SENDING' , error);
-                send_message_fetch();
-
+                console.error('END 1' , error);
             });
 
         })
             .catch(error => {
 
-            console.error('END' , error);
+            console.error('END 2' , error);
 
 
         });
@@ -297,160 +278,86 @@
     async function process_chats(body,page){
         console.warn('process on ' + page , body);
         if(body?.items && body.items.length > 0 ){
+            let need_send_chats = body.items.filter((chat) => {
+                return chat.lastMessage && need_send_messages([chat.lastMessage]);
+            })
 
-            body.items.forEach(chat=>{
+            let profileInfo = array_column(need_send_chats,'profileInfo');
 
-                let messages = new Array();
+            let users = array_column(profileInfo,'profileId');
 
-                if(chat.lastMessage){
-                    messages.push(chat.lastMessage);
-                }
-
-                let user_id = chat.recipientProfileId;
-
-                if(need_send_messages(messages) || messages.length == 0){
-                    // console.warn('Надо отправить' , user_id , messages, 'всего сообщений ',messages.length );
-
-                    send_message(user_id, messages);
-                }else{
-                    //console.warn('Не нужно отправлять', user_id , messages);
-                }
-            });
+            dup_profiles = users.slice();
+            console.warn(dup_profiles);
+            // ------------------------------------------------------- Перебор юзеров ------------------------------------------------------------------------
+            await process();
         }
-        await sleep(1000);
+        
     }
 
+    async function send_message(user_id, messages = []){
+        let you_messages = messages.filter(x => {
+            return x.profileId == get_curent_id()
+        });
+        let self_count = you_messages.length;
 
-    let all_user_nedded_to_send_massage = [];
-    function send_message(user_id, messages = []){
-        all_user_nedded_to_send_massage.push(
-            {
-                'user_id': user_id,
-                'messages': messages
-            }
-        );
-    }
+        if(self_count > 0 ){
 
-    function send_message_fetch(index = 0){
+            let last_messaage = you_messages[self_count-1];
+            let frase = select_frase(last_messaage?.content);
 
-        if(index < all_user_nedded_to_send_massage.length){
-
-            let current = all_user_nedded_to_send_massage[index];
-
-            //console.warn('Отправляем',index , current);
-
-            let user_id = current.user_id;
-            let messages = current.messages;
-
-            let you_messages = messages.filter(x => {
-                return x.profileId == get_curent_id()
-            });
-            let self_count = you_messages.length;
-
-            if(self_count > 0 ){
-
-                let last_messaage = you_messages[self_count-1];
-                let frase = select_frase(last_messaage?.content);
-
-                //console.warn('Попытка отправить ',user_id , last_messaage?.chatId, frase);
-                send_to_chatid(last_messaage?.chatId, frase,
-                               (body) => {
-                    //console.warn('Отправлено добивочное',user_id , body,' Предыдущее сообщение: ', messages);
-                    allSuccsessSended++;
-
-                    setTimeout(function(){
-                        send_message_fetch(++index);
-                    },100);
-
-                } ,
-                               (error) => {
-                    //console.error(error);
-                    setTimeout(function(){
-                        send_message_fetch(++index);
-                    },100);
-                });
-            }else if(messages.length === 0){
-                //let win = window.open(`https://nataliedate.com/profile/${user_id}?self_count=${self_count}`);
-
-                send_new_message(user_id, select_frase(''),
+            //console.warn('Попытка отправить ',user_id , last_messaage?.chatId, frase);
+            await send_to_chatid(last_messaage?.chatId, frase,
                                  (body) => {
-                    console.warn('Отправлено первое', user_id , body,' Предыдущее сообщение: ', messages);
-                    allSuccsessSended++;
+                //console.warn('Отправлено добивочное',user_id , body,' Предыдущее сообщение: ', messages);
+                allSuccsessSended++;
+            });
+        }else if(messages.length === 0){
+            //let win = window.open(`https://nataliedate.com/profile/${user_id}?self_count=${self_count}`);
 
-                    send_message_fetch(++index);
+            await send_new_message(user_id, select_frase(''),
+                                   (body) => {
+                console.warn('Отправлено первое', user_id , body,' Предыдущее сообщение: ', messages);
+                allSuccsessSended++;
+                //let win = window.open(`https://nataliedate.com/profile/${user_id}?self_count=${self_count}`);
+            });
 
-                    //let win = window.open(`https://nataliedate.com/profile/${user_id}?self_count=${self_count}`);
-                },
-                                 (error) => {
-                    //console.error(error);
-                    setTimeout(function(){
-                        send_message_fetch(++index);
-                    },100);
-                } );
-
-            }
-
-
-
-        }else{
-            console.warn('Отправлено сообщений', allSuccsessSended);
-            console.warn('Ошибочных фраз', errorfrasses.filter(a => a > 100));
         }
-
-        //let win = window.open(`https://nataliedate.com/profile/${user_id}?self_count=${self_count}`);
     }
 
+    //console.warn('Отправлено сообщений', allSuccsessSended);
+    //console.warn('Ошибочных фраз', errorfrasses.filter(a => a > 100));
 
 
-    function send_new_message(profile, message, func, errorf){
-
-        //console.warn(profile, message);
-        // return;
-
+    async function send_new_message(profile, message, func){
         if(profile !== '' && message !== '' && message !== null && message !== 'null'){
             let form_data = new FormData();
             form_data.append('content', message);
 
-            fetch(`https://engbkprod2.azurewebsites.net/api/chats/messages/${profile}`, {
+            let response = await fetch(`https://engbkprod2.azurewebsites.net/api/chats/messages/${profile}`, {
                 method: 'POST',
                 cache: 'no-cache',
-
                 headers: {
                     "authorization": "Bearer " + get_user_tocken(),
                     'visit-token' : get_visit_token(),
                 },
                 body:  form_data
-            })
-                .then(response => {
-                //console.warn(response);
-                if(response.ok !== true){
-                    throw CHAT_INFOS;
-                }
-
-                return response.json()
-            })
-                .then(body => {
-
-                func(body);
-
-            })
-                .catch(error => {
-                errorf(error);
             });
-        }else{
-            errorf('Пустое собщение или пустой идинтификатор юзера');
+            if(response.ok === true){
+                let body = await response.json();
+                func(body);
+            }
         }
     }
 
 
-    function send_to_chatid(chatid, message, func, errorf){
+    async function send_to_chatid(chatid, message, func){
         if(chatid !== '' && message !== '' && message !== null && message !== 'null'){
             // console.warn(chatid, message);
 
             let form_data = new FormData();
             form_data.append('content',message);
 
-            fetch(`https://engbkprod2.azurewebsites.net/api/chats/${chatid}/messages`, {
+            let response = await fetch(`https://engbkprod2.azurewebsites.net/api/chats/${chatid}/messages`, {
                 method: 'POST',
                 cache: 'no-cache',
 
@@ -459,26 +366,12 @@
                     'visit-token' : get_visit_token(),
                 },
                 body:  form_data
-            })
-                .then(response => {
-                //console.warn(response);
-                if(response.ok !== true){
-                    throw CHAT_INFOS;
-                }
-
-                return response.json()
-            })
-                .then(body => {
-
-                func(body);
-
-            })
-                .catch(error => {
-                errorf(error);
             });
 
-        }else{
-            errorf('Пустое собщение или пустой индификатор чата');
+            if(response.ok === true){
+                let body = await response.json();
+                func(body);
+            }
         }
     }
 
@@ -523,19 +416,16 @@
     let next_index = 0;
 
 
-    function process(next_index = 0){
+    async function process(next_index = 0){
         if(dup_profiles){
 
             if(next_index < dup_profiles.length){
-                setTimeout(function(){
-                    let profile = dup_profiles[next_index];
-                    //console.warn(`-------- get_chat_info__2( ${profile} ) ---------`);
-                    get_chat_info__2(profile, send_message);
-                    process(++next_index);
 
-                },1000);
-            }else{
-                send_message_fetch();
+                let profile = dup_profiles[next_index];
+                //console.warn(`-------- get_chat_info__2( ${profile} ) ---------`);
+                await get_chat_info__2(profile, send_message);
+                await process(++next_index);
+                // await sleep(1000);
             }
 
         }
@@ -581,7 +471,9 @@
 
             dup_profiles = settings.prem_profiles.slice();
             //------------------------------------------------------- Перебор юзеров ------------------------------------------------------------------------
-            process();
+            process().then(()=>{
+                console.warn('Конец рассылки');
+            });
         }
     }
 
@@ -596,7 +488,7 @@
         if(typeof self_count !== 'undefined' && self_count >= 0){
             window.addEventListener('load',function(){
 
-                get_chat_info__2(profile, send_message);
+                //get_chat_info__2(profile, send_message);
 
                 setTimeout(function(){
 
@@ -670,9 +562,11 @@
                     settings = save_data(frases, users);
                     dup_profiles = settings.prem_profiles.slice();
                     //------------------------------------------------------- Перебор юзеров ------------------------------------------------------------------------
-                    process();
-
-                    console.warn('Анкет девушек ',gerl_profiles);
+                    process().then(()=>{
+                        console.warn('Отправлено сообщений', allSuccsessSended);
+                        console.warn('Ошибочных,часто повторяемых, фраз', errorfrasses.filter(a => a > 100));
+                        console.warn('Анкет девушек ',gerl_profiles);
+                    });
                 }, 500);
             }
 
