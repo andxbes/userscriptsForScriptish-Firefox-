@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Nataliedate
 // @namespace    http://tampermonkey.net/
-// @version      1.0
+// @version      1.1
 // @description  try to take over the world!
 // @author       andxbes
 // @match        https://nataliedate.com/*
@@ -133,9 +133,6 @@
     //                     //console.warn('Не нужно отправлять',chat_id , body.items);
     //                 }
 
-
-    //                 //remove_settings(user_id);
-
     //             })
     //                 .catch(error => {
     //                 console.error(error);
@@ -168,8 +165,6 @@
                     // console.warn('Надо отправить' , user_id , messages, 'всего сообщений ',messages.length );
                     await func(user_id, messages);
                 }
-
-                remove_settings(user_id);
             }
         }
     }
@@ -461,33 +456,24 @@
         el.dispatchEvent( evt );
     };
 
-    function remove_settings(user_id){
-        var myIndex = settings?.prem_profiles.indexOf(user_id);
-        if (myIndex !== -1) {
-            settings.prem_profiles.splice(myIndex, 1);
-            localStorage.setItem(STORAGE_KEY + get_curent_id(), JSON.stringify(settings));
-        }
-        // console.warn('remove settings',settings);
-    }
-
 
     //console.warn(location.pathname);
     if(location.pathname == '/profile/' + get_curent_id()){
 
         //------------------------------------------------------------- Ввод переменных ---------------------------------------------------------------------------
         if(confirm('Запустить процесс расссылки по списку профилей?')){
-            if(!Array.isArray(settings?.prem_profiles) || settings.prem_profiles.length == 0){
-                let prem_profiles = prompt('Введите идентификаторы премиум юзеров, разделяя пробелами', '')?.match(/\d{1,}/gs);
-                prem_profiles = Array.from(new Set(prem_profiles));//уникальные id
-                if(prem_profiles && prem_profiles.length > 0){
 
-                    let frases = set_frases();
+            let prem_profiles = prompt('Введите идентификаторы премиум юзеров, разделяя пробелами', '')?.match(/\d{1,}/gs);
+            prem_profiles = Array.from(new Set(prem_profiles));//уникальные id
+            if(prem_profiles && prem_profiles.length > 0){
 
-                    if(confirm(`Запустить процесс рассылки с параметрами? \n Фразы:\n${frases.join('\n ---------------- \n')} \n Профили:\n${prem_profiles.join(', \n')} `)){
-                        settings = save_data(frases, prem_profiles);
-                    }
+                let frases = set_frases();
+
+                if(confirm(`Запустить процесс рассылки с параметрами? \n Фразы:\n${frases.join('\n ---------------- \n')} \n Профили:\n${prem_profiles.join(', \n')} `)){
+                    settings = save_data(frases, prem_profiles);
                 }
             }
+
 
             dup_profiles = settings.prem_profiles.slice();
             //------------------------------------------------------- Перебор юзеров ------------------------------------------------------------------------
