@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Nataliedate
 // @namespace    http://tampermonkey.net/
-// @version      0.9
+// @version      1.0
 // @description  try to take over the world!
 // @author       andxbes
 // @match        https://nataliedate.com/*
@@ -193,7 +193,7 @@
                 let last = new Date(you_messages[0].creationDate);
                 diffInhours = Math.floor((current - last)/ (1000 * 60 * 60));
             }
-            let last_12 = diffInhours > 12;
+            let last_12 = diffInhours > 6;
 
             //console.warn('последнее сообщение отправлено ', diffInhours, 'есть сообщение клиента' , !only_you_messages, 'твоих сообщений', you_messages);
 
@@ -207,7 +207,7 @@
         let result = '';
         let frases = settings?.frases;
 
-        if(frases.length > 0){
+        if(frases.length > 0 && last_message != undefined){
             let index = -1;
             if(last_message.trim() == ''){
                 result = frases[0];
@@ -278,8 +278,17 @@
     async function process_chats(body,page){
         console.warn('process on ' + page , body);
         if(body?.items && body.items.length > 0 ){
+
+            //     let you_messages = messages.filter(x => {
+            //     return x.profileId == get_curent_id()
+            // });
+
+            // let last_messaage = you_messages[self_count-1];
+            // let frase = select_frase(last_messaage?.content);
+
             let need_send_chats = body.items.filter((chat) => {
-                return chat.lastMessage && need_send_messages([chat.lastMessage]);
+                return chat.lastMessage && need_send_messages([chat.lastMessage]) &&
+                    select_frase(chat.lastMessage?.content) !== '';
             })
 
             let profileInfo = array_column(need_send_chats,'profileInfo');
@@ -401,7 +410,7 @@
                 if(allSuccsessSended < limit){
                     setTimeout(()=>{
                         get_users_by_search(func, perPage, limit);
-                    }, (1*60*1000));
+                    }, (5*60*1000));
                 }
             });
         })
@@ -430,7 +439,11 @@
 
                 let profile = dup_profiles[next_index];
                 //console.warn(`-------- get_chat_info__2( ${profile} ) ---------`);
-                await get_chat_info__2(profile, send_message);
+                try{
+                    await get_chat_info__2(profile, send_message);
+                }catch(ex){
+                    console.error(ex);
+                }
                 await process(++next_index);
                 // await sleep(1000);
             }
