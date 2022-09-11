@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Nataliedate
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      1.2
 // @description  try to take over the world!
 // @author       andxbes
 // @match        https://nataliedate.com/*
@@ -213,10 +213,14 @@
 
         if(result === ''){
 
-            if(errorfrasses[last_message] !== undefined){
-                errorfrasses[last_message]++;
+            let index = errorfrasses.find((element) => element.text === last_message);
+            if( index != undefined){
+                index.count++;
             }else{
-                errorfrasses[last_message] = 1;
+                errorfrasses.push({
+                    'text': last_message,
+                    'count': 1
+                });
             }
         }
 
@@ -250,7 +254,7 @@
                         get_unpaid_only_users(func, perPage, ++page);
                     }else{
                         console.warn('Отправлено сообщений', allSuccsessSended);
-                        console.warn('Ошибочных,часто повторяемых, фраз', errorfrasses.filter(a => a > 100));
+                        console.warn('Ошибочных,часто повторяемых, фраз', errorfrasses.sort( (a, b) => b.count - a.count));
                         throw "Конец чатов";
                     }
                 }
@@ -291,7 +295,7 @@
             let users = array_column(profileInfo,'profileId');
 
             dup_profiles = users.slice();
-            console.warn(dup_profiles);
+            console.warn('Будет отправлено для :',dup_profiles);
             // ------------------------------------------------------- Перебор юзеров ------------------------------------------------------------------------
             await process();
         }
@@ -405,7 +409,7 @@
                 if(allSuccsessSended < limit){
                     setTimeout(()=>{
                         get_users_by_search(func, perPage, limit);
-                    }, (5*60*1000));
+                    }, (1.5*60*1000));
                 }
             });
         })
