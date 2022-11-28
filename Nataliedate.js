@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Nataliedate
 // @namespace    http://tampermonkey.net/
-// @version      1.2
+// @version      1.4
 // @description  try to take over the world!
 // @author       andxbes
 // @match        https://nataliedate.com/*
@@ -188,7 +188,7 @@
                 let last = new Date(you_messages[0].creationDate);
                 diffInhours = Math.floor((current - last)/ (1000 * 60 * 60));
             }
-            let last_12 = diffInhours > 6;
+            let last_12 = diffInhours > 2; // 2 часа
 
             //console.warn('последнее сообщение отправлено ', diffInhours, 'есть сообщение клиента' , !only_you_messages, 'твоих сообщений', you_messages);
 
@@ -204,11 +204,13 @@
 
         if(frases.length > 0 && last_message != undefined){
             let index = -1;
-            if(last_message.trim() == ''){
+            last_message = last_message.trim();
+            if(last_message == ''){
                 result = frases[0];
             }else if((index = frases.indexOf(last_message)) >= 0 && ++index < frases.length){
                 result = frases[index];
             }
+            result = result.trim();
         }
 
         if(result === ''){
@@ -383,7 +385,7 @@
         }
     }
 
-    function get_users_by_search( func, perPage = 100, limit = 1000){
+    function get_users_by_search( func, perPage = 100, limit = 2000){
 
         fetch(`https://nataliedate-search.azurewebsites.net/profiles/suitable?itemsPerPage=${perPage}&page=1&profileId=${get_curent_id()}`, {
             method: 'GET',
