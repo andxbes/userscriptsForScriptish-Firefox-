@@ -567,6 +567,9 @@
     }
 
 
-    GM_addStyle('#root, .root-wrap, .user-online, body, html { background: powderblue; }');
+    GM_addStyle(
+        '#root, .root-wrap, .user-online, body, html { background: powderblue; } \
+        .content-chat--chat { background: white } '
+    );
 
 })();
