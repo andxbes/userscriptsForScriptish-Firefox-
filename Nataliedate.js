@@ -383,10 +383,8 @@
             cache: 'no-cache',
 
             headers: {
-                "authorization": "Bearer " + get_user_token(),
-                //'visit-token' : get_visit_token(),
-            },
-            //body:  form_data
+                "authorization": "Bearer " + get_user_token()
+            }
         })
             .then(response => {
                 if (response.ok !== true) {
