@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         Nataliedate
 // @namespace    http://tampermonkey.net/
-// @version      1.4.3
+// @version      1.5.0
 // @description  try to take over the world!
 // @author       andxbes
 // @match        https://nataliedate.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=nataliedate.com
 // @grant        GM_addStyle
+// @grant        GM_addElement
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -20,6 +21,7 @@
     const CHAT_INFOS = 'chat_info';
 
     let settings = JSON.parse(localStorage.getItem(STORAGE_KEY + get_current_id()));
+    let all_frases = settings?.phrases?.length ? settings.phrases.length : 0;
     let dup_profiles = [];
 
 
@@ -230,7 +232,7 @@
 
 
     function get_unpaid_only_users(func, perPage = 100, page = 0) {
-        fetch(`https://engbkprod2.azurewebsites.net/api/chats/me?page=${page}&perPage=${perPage}&unreadOnly=false&unpaidOnly=true&paidOnly=false&onlineOnly=false&retentionOnly=false&dialogOnly=false&favoriteOnly=false&answerFirstOnly=false&disabledFilters=paid,retain,favorite`, {
+        fetch(`https://engbkprod2.azurewebsites.net/api/chats/me?page=${page}&perPage=${perPage}&unreadOnly=false&unpaidOnly=true&paidOnly=false&onlineOnly=true&retentionOnly=false&dialogOnly=false&favoriteOnly=false&answerFirstOnly=false&disabledFilters=paid,retain,favorite`, {
             method: 'GET',
             cache: 'no-cache',
 
@@ -569,7 +571,129 @@
 
     GM_addStyle(
         '#root, .root-wrap, .user-online, body, html { background: powderblue; } \
-        .content-chat--chat { background: white } '
+        .content-chat--chat { background: white } \
+        #natalidate_helper {    \
+            display: flex;\
+            flex-direction: column;\
+            gap: 1rem;\
+            width: 25%;\
+            position: absolute;\
+            z-index: 100;\
+            right: 0;\
+            top: 0;\
+            bottom: 0;\
+            padding: 20px;\
+            position: fixed;\
+            background: linear-gradient(0deg, #e4ff00, #3c0af5);}\
+       .nh__text{ display: inline-flex;\
+                width: 100% !important;\
+                background: cyan;\
+                padding: 5px;\
+                min-height: 100px;\
+        } \
+        #nh__list {\
+           display: flex;\
+           flex-direction: column;\
+           gap: 1rem;\
+           overflow-y: scroll;\
+           height: calc(100vh - 120px)\
+       }\
+     '
     );
+
+
+    // ----------------------------------------  settings --------------------------------------------------
+
+    const helper = GM_addElement(document.getElementsByTagName('body')[0], 'div', {
+        id: 'natalidate_helper'
+    });
+
+    const form = GM_addElement(helper, 'form', {
+        id: 'nh__form',
+    });
+
+
+    const close_settings = GM_addElement(form, 'button', {
+        id: 'close_settings',
+        class: 'close_settings',
+        title: 'Закрыть',
+        textContent: '✖',
+        style: 'background: white;border-radius: 50%;width: 25px;height: 25px;margin: 0 0 1rem;'
+    });
+
+    const list = GM_addElement(form, 'div', {
+        id: 'nh__list',
+        class: 'nh__list',
+    });
+    const nh__buttons = GM_addElement(form, 'div', {
+        id: 'nh__buttons',
+        class: 'nh__buttons',
+        style: 'display: flex;gap: 1rem;margin: 1rem 0;justify-content: space-between;'
+    });
+
+    GM_addElement(nh__buttons, 'button', {
+        type: 'submit',
+        title: 'Сохранить',
+        textContent: '✔',
+        style: "background: crimson; color: white;",
+        class: 'btn'
+    });
+
+    const nh__add__text = GM_addElement(nh__buttons, 'button', {
+        id: 'nh__add__text',
+        type: 'button',
+        style: "background: forestgreen;color: white;",
+        class: 'btn',
+        title: 'Добавить еще',
+        textContent: '✚'
+    });
+
+
+
+
+
+    nh__add__text.addEventListener('click', function () {
+        add_field('');
+        list.scrollTo(0, list.scrollHeight);
+    });
+
+
+
+    function print_text_fields() {
+        list.innerHTML = '';
+
+        if (settings?.phrases?.length) {
+            let i = 0;
+            while (i < settings.phrases.length) {
+                add_field(settings.phrases[i]);
+                i++;
+            }
+        } else {
+            add_field('');
+        }
+
+    }
+    print_text_fields();
+
+    function add_field(text = '') {
+        GM_addElement(list, 'textarea', {
+            class: 'nh__text',
+            name: 'phrases[]',
+            textContent: text
+        });
+    }
+
+    form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var data = new FormData(form);
+        let form_phrases = data.getAll('phrases[]');
+        form_phrases = form_phrases.map(element => element.trim()).filter(word => word.length > 0);
+        console.warn(form_phrases);
+        settings = save_data(form_phrases);
+        // SAVE FIELDS
+        print_text_fields();
+
+        return false;
+    });
 
 })();
