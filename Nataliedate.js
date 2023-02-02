@@ -235,16 +235,13 @@
     }
 
 
-    function get_unpaid_only_users(func, perPage = 100, page = 0) {
-        fetch(`https://engbkprod2.azurewebsites.net/api/chats/me?page=${page}&perPage=${perPage}&unreadOnly=false&unpaidOnly=true&paidOnly=false&onlineOnly=true&retentionOnly=false&dialogOnly=false&favoriteOnly=false&answerFirstOnly=false&disabledFilters=paid,retain,favorite`, {
+    function get_unpaid_only_users(func, endFunc, only_online = false, perPage = 100, page = 0) {
+        fetch(`https://engbkprod2.azurewebsites.net/api/chats/me?page=${page}&perPage=${perPage}&unreadOnly=false&unpaidOnly=true&paidOnly=false&onlineOnly=${only_online}&retentionOnly=false&dialogOnly=false&favoriteOnly=false&answerFirstOnly=false&disabledFilters=paid,retain,favorite`, {
             method: 'GET',
             cache: 'no-cache',
-
             headers: {
                 "authorization": "Bearer " + get_user_token(),
-                //'visit-token' : get_visit_token(),
             },
-            //body:  form_data
         })
             .then(response => {
                 if (response.ok !== true) {
@@ -258,7 +255,7 @@
                 func(body, page).then(
                     () => {
                         if (body.items.length > 0) {
-                            get_unpaid_only_users(func, perPage, ++page);
+                            get_unpaid_only_users(func, endFunc, only_online, perPage, ++page);
                         } else {
                             console.warn('Отправлено сообщений', allSuccessSended);
                             console.warn('Ошибочных,часто повторяемых, фраз', errorPhrases.sort((a, b) => b.count - a.count));
@@ -267,11 +264,13 @@
                     }
                 ).catch(error => {
                     console.error('END 1', error);
+                    endFunc();
                 });
 
             })
             .catch(error => {
                 console.error('END 2', error);
+                endFunc();
             });
 
 
@@ -454,58 +453,9 @@
     };
 
 
-    //страницы юзеров
-    if (location.pathname.indexOf('/profile/') !== -1 && location.pathname !== '/profile/' + get_current_id()) {
-
-        // let profile = location.pathname.match(/\d{3,}/i)[0];
-        let settings = get_data();
-        const queryString = window.location.search;
-        const urlParams = new URLSearchParams(queryString);
-        const self_count = urlParams.get('self_count');
-        if (typeof self_count !== 'undefined' && self_count >= 0) {
-            window.addEventListener('load', function () {
-
-                //get_chat_info__2(profile, send_message);
-
-                setTimeout(function () {
-
-                    let button = document.querySelector('.user-profile .user-controls button.btn.btn--action.btn--user__write');
-                    trigger(button, `click`);
-                    setTimeout(function () {
-                        let message_wrapper = document.querySelector('.message-wrapper .message-header');
-
-                        message_wrapper.addEventListener('click', function () {
-                            navigator.clipboard.writeText(settings.phrases[self_count])
-                                .then(() => {
-                                    console.log('Text copied to clipboard');
-                                })
-                                .catch(err => {
-                                    console.error('Error in copying text: ', err);
-                                });
-                        });
-
-                    }, 1000);
-
-                }, 2000);
-
-            });
-
-        }
-
-    }
 
 
-    if (location.pathname.indexOf('/chats') !== -1 && confirm('Запустить процесс расссылки по чатам?')) {
-        console.error('/chats');
-        let phrases = set_phrases();
-        settings = save_data(phrases);
-
-        if (confirm(`Запустить процесс рассылки с параметрами? \n Фразы:\n${phrases.join('\n ---------------- \n')} \n`)) {
-            get_unpaid_only_users(process_chats, 500, 0);
-        }
-
-    }
-
+    // --------------------------------------------        UI       ------------------------------------------------------------- 
 
 
 
@@ -548,8 +498,6 @@
                 if (users.length > 0) {
                     users = Array.from(new Set(users));
                 }
-
-                //------------------------------------------------------- Перебор юзеров ------------------------------------------------------------------------
                 return process(users.slice());
             },
             () => {
@@ -571,6 +519,12 @@
     send_finish_off.addEventListener('click', function () {
         send_finish_off.disabled = true;
         console.warn('send_finish_off');
+
+        get_unpaid_only_users(process_chats,
+            () => {
+                send_finish_off.disabled = false;
+            }, false, 500, 0);
+
     });
 
     const send_finish_off_for_online_users = GM_addElement(nh_actions, 'button', {
@@ -583,13 +537,19 @@
     send_finish_off_for_online_users.addEventListener('click', function () {
         send_finish_off_for_online_users.disabled = true;
         console.warn('send_finish_off_for_online_users');
+
+        get_unpaid_only_users(process_chats,
+            () => {
+                send_finish_off_for_online_users.disabled = false;
+            }, true, 500, 0);
+
     });
 
     const send_by_ids = GM_addElement(nh_actions, 'button', {
         id: 'send_by_ids',
         title: 'Плюшки (отправка по списку id юзеров)',
         textContent: '⛑',
-        style: 'background: coral;color: white;'
+        style: 'background: darkorange;color: white;'
     });
 
     send_by_ids.addEventListener('click', function () {
@@ -607,8 +567,6 @@
                 });
             }
         }
-        //------------------------------------------------------- Перебор юзеров ------------------------------------------------------------------------
-
     });
 
 
