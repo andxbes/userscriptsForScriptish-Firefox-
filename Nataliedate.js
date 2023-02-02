@@ -259,7 +259,15 @@
                         } else {
                             console.warn('Отправлено сообщений', allSuccessSended);
                             console.warn('Ошибочных,часто повторяемых, фраз', errorPhrases.sort((a, b) => b.count - a.count));
-                            throw "Конец чатов";
+                            if (only_online) {
+                                console.warn('Повторим перебор через  минуту');
+                                setTimeout(() => {
+                                    get_unpaid_only_users(func, endFunc, only_online, perPage);
+                                }, (1.5 * 60 * 1000));
+
+                            } else {
+                                throw "Конец чатов";
+                            }
                         }
                     }
                 ).catch(error => {
@@ -561,9 +569,12 @@
             if (prem_profiles.length > 0) {
                 prem_profiles = Array.from(new Set(prem_profiles));
                 process(prem_profiles.slice()).then(() => {
+                    send_by_ids.disabled = false;
                     console.warn('Конец рассылки');
                 });
             }
+        } else {
+            send_by_ids.disabled = false;
         }
     });
 
