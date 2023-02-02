@@ -454,30 +454,6 @@
     };
 
 
-    //console.warn(location.pathname);
-    if (location.pathname == '/profile/' + get_current_id()) {
-        let settings = get_data();
-        //------------------------------------------------------------- Ввод переменных ---------------------------------------------------------------------------
-        if (confirm('Запустить процесс расссылки по списку профилей?')) {
-
-            let prem_profiles = prompt('Введите идентификаторы премиум юзеров, разделяя пробелами', '')?.match(/\d{1,}/gs);
-            prem_profiles = Array.from(new Set(prem_profiles));//уникальные id
-            if (prem_profiles && prem_profiles.length > 0) {
-
-                let phrases = set_phrases();
-
-                if (confirm(`Запустить процесс рассылки с параметрами? \n Фразы:\n${phrases.join('\n ---------------- \n')} \n Профили:\n${prem_profiles.join(', \n')} `)) {
-                    settings = save_data(phrases, prem_profiles);
-                }
-            }
-
-            //------------------------------------------------------- Перебор юзеров ------------------------------------------------------------------------
-            process(settings.prem_profiles.slice()).then(() => {
-                console.warn('Конец рассылки');
-            });
-        }
-    }
-
     //страницы юзеров
     if (location.pathname.indexOf('/profile/') !== -1 && location.pathname !== '/profile/' + get_current_id()) {
 
@@ -607,6 +583,32 @@
     send_finish_off_for_online_users.addEventListener('click', function () {
         send_finish_off_for_online_users.disabled = true;
         console.warn('send_finish_off_for_online_users');
+    });
+
+    const send_by_ids = GM_addElement(nh_actions, 'button', {
+        id: 'send_by_ids',
+        title: 'Плюшки (отправка по списку id юзеров)',
+        textContent: '⛑',
+        style: 'background: coral;color: white;'
+    });
+
+    send_by_ids.addEventListener('click', function () {
+        send_by_ids.disabled = true;
+        console.warn('send_by_ids');
+
+        let prem_profiles = prompt('Введите идентификаторы премиум юзеров, разделяя пробелами', '')?.match(/\d{1,}/gs);
+        prem_profiles = Array.from(new Set(prem_profiles));//уникальные id
+        if (prem_profiles && prem_profiles.length > 0) {
+
+            if (prem_profiles.length > 0) {
+                prem_profiles = Array.from(new Set(prem_profiles));
+                process(prem_profiles.slice()).then(() => {
+                    console.warn('Конец рассылки');
+                });
+            }
+        }
+        //------------------------------------------------------- Перебор юзеров ------------------------------------------------------------------------
+
     });
 
 
