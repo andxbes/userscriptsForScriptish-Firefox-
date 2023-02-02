@@ -21,7 +21,6 @@
     const CHAT_INFOS = 'chat_info';
 
     // let settings = JSON.parse(localStorage.getItem(STORAGE_KEY + get_current_id()));
-    let dup_profiles = [];
 
 
     let errorPhrases = [];
@@ -292,10 +291,10 @@
 
             let users = array_column(profileInfo, 'profileId');
 
-            dup_profiles = users.slice();
-            console.warn('Будет отправлено для :', dup_profiles);
+            let for_users = users.slice();
+            console.warn('Будет отправлено для :', for_users);
             // ------------------------------------------------------- Перебор юзеров ------------------------------------------------------------------------
-            await process();
+            await process(for_users);
         }
 
     }
@@ -425,7 +424,7 @@
     let next_index = 0;
 
 
-    async function process(next_index = 0) {
+    async function process(dup_profiles, next_index = 0) {
         if (dup_profiles) {
 
             if (next_index < dup_profiles.length) {
@@ -437,7 +436,7 @@
                 } catch (ex) {
                     console.error(ex);
                 }
-                await process(++next_index);
+                await process(dup_profiles, ++next_index);
                 // await sleep(1000);
             }
 
@@ -472,10 +471,8 @@
                 }
             }
 
-
-            dup_profiles = settings.prem_profiles.slice();
             //------------------------------------------------------- Перебор юзеров ------------------------------------------------------------------------
-            process().then(() => {
+            process(settings.prem_profiles.slice()).then(() => {
                 console.warn('Конец рассылки');
             });
         }
@@ -557,9 +554,6 @@
         let gerl_profiles = [];
         let search_profiles = [];
 
-        let phrases = get_data()?.phrases;
-
-
         get_users_by_search(
             (body) => {
                 let f_profiles = body.items.filter(el => {
@@ -578,13 +572,14 @@
                 if (users.length > 0) {
                     users = Array.from(new Set(users));
                 }
-                dup_profiles = users.slice();
+
                 //------------------------------------------------------- Перебор юзеров ------------------------------------------------------------------------
-                return process();
+                return process(users.slice());
             },
             () => {
                 console.warn('endFunc');
                 send_new_messages.disabled = false;
+                console.warn('Профили девушек:', gerl_profiles);
             },
             500);
 
