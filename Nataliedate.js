@@ -20,13 +20,16 @@
     const CHAT_EXCEPTION = 'chat_exception';
     const CHAT_INFOS = 'chat_info';
 
-    let settings = JSON.parse(localStorage.getItem(STORAGE_KEY + get_current_id()));
-    let all_frases = settings?.phrases?.length ? settings.phrases.length : 0;
+    // let settings = JSON.parse(localStorage.getItem(STORAGE_KEY + get_current_id()));
     let dup_profiles = [];
 
 
     let errorPhrases = [];
     let allSuccessSended = 0;
+
+    function get_data() {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY + get_current_id()));
+    };
 
     function save_data(phrases = [], users = []) {
         if (users.length > 0) {
@@ -85,9 +88,10 @@
         return result;
     };
 
-
+    //TODO deprecated
     function set_phrases() {
         let phrases = [];
+        let settings = get_data();
         if (settings?.phrases?.length > 0 && confirm(`Оставить предыдущие фразы ?\n${settings.phrases.join('\n ---------------------- \n')} `)) {
             phrases = settings.phrases;
         } else {
@@ -200,6 +204,7 @@
 
 
     function select_phrase(last_message) {
+        let settings = get_data();
         let result = '';
         let phrases = settings?.phrases;
 
@@ -373,7 +378,7 @@
         }
     }
 
-    function get_users_by_search(func, perPage = 100, limit = 2000) {
+    function get_users_by_search(func, endFunc, perPage = 100, limit = 2000) {
 
         fetch(`https://nataliedate-search.azurewebsites.net/profiles/suitable?itemsPerPage=${perPage}&page=1&profileId=${get_current_id()}`, {
             method: 'GET',
@@ -398,16 +403,16 @@
                     console.warn('Отправлено сообщений', allSuccessSended);
                     if (allSuccessSended < limit) {
                         setTimeout(() => {
-                            get_users_by_search(func, perPage, limit);
+                            get_users_by_search(func, endFunc, perPage, limit);
                         }, (1.5 * 60 * 1000));
+                    } else {
+                        endFunc();
                     }
                 });
             })
             .catch(error => {
-
                 console.error('END', error);
-
-
+                endFunc();
             });
     }
 
@@ -452,7 +457,7 @@
 
     //console.warn(location.pathname);
     if (location.pathname == '/profile/' + get_current_id()) {
-
+        let settings = get_data();
         //------------------------------------------------------------- Ввод переменных ---------------------------------------------------------------------------
         if (confirm('Запустить процесс расссылки по списку профилей?')) {
 
@@ -479,8 +484,8 @@
     //страницы юзеров
     if (location.pathname.indexOf('/profile/') !== -1 && location.pathname !== '/profile/' + get_current_id()) {
 
-        let profile = location.pathname.match(/\d{3,}/i)[0];
-
+        // let profile = location.pathname.match(/\d{3,}/i)[0];
+        let settings = get_data();
         const queryString = window.location.search;
         const urlParams = new URLSearchParams(queryString);
         const self_count = urlParams.get('self_count');
@@ -531,81 +536,117 @@
 
 
 
-    //search
 
-    let gerl_profiles = [];
-    let search_profiles = [];
-    if (location.pathname.indexOf('/search') !== -1) {
-        console.error('/search');
+    const nh_actions = GM_addElement(document.getElementsByTagName('body')[0], 'div', {
+        id: 'nh_actions',
+    });
 
-        if (confirm('Запустить процесс расссылки по поиску?')) {
-            let phrases = set_phrases();
 
-            if (confirm(`Запустить процесс рассылки с параметрами? \n Фразы:\n${phrases.join('\n ---------------- \n')} \n`)) {
-                get_users_by_search((body) => {
-                    let f_profiles = body.items.filter(el => {
-                        return el.gender == 1 && el.age >= 23;
-                    });
-                    let f_gerl_profiles = body.items.filter(el => {
-                        return el.gender != 1;
-                    });
+    const send_new_messages = GM_addElement(nh_actions, 'button', {
+        id: 'send_new_messages',
+        title: 'Отправка новых сообщений',
+        textContent: '❤',
+        style: 'background: limegreen;color: white;'
+    });
 
-                    gerl_profiles.push(...f_gerl_profiles);
-                    search_profiles.push(...f_profiles);
+    send_new_messages.addEventListener('click', function () {
+        send_new_messages.disabled = true;
+        console.warn('send_new_messages');
+        //search
 
-                    let users = array_column(f_profiles, 'profileId');
+        let gerl_profiles = [];
+        let search_profiles = [];
 
-                    settings = save_data(phrases, users);
-                    dup_profiles = settings.prem_profiles.slice();
-                    //------------------------------------------------------- Перебор юзеров ------------------------------------------------------------------------
-                    return process();
-                }, 500);
-            }
+        let phrases = get_data()?.phrases;
 
+
+        get_users_by_search(
+            (body) => {
+                let f_profiles = body.items.filter(el => {
+                    return el.gender == 1 && el.age >= 23;
+                });
+                let f_gerl_profiles = body.items.filter(el => {
+                    return el.gender != 1;
+                });
+
+                gerl_profiles.push(...f_gerl_profiles);
+                search_profiles.push(...f_profiles);
+
+                let users = array_column(f_profiles, 'profileId');
+
+                // settings = save_data(phrases, users);
+                if (users.length > 0) {
+                    users = Array.from(new Set(users));
+                }
+                dup_profiles = users.slice();
+                //------------------------------------------------------- Перебор юзеров ------------------------------------------------------------------------
+                return process();
+            },
+            () => {
+                console.warn('endFunc');
+                send_new_messages.disabled = false;
+            },
+            500);
+
+    });
+
+    const send_finish_off = GM_addElement(nh_actions, 'button', {
+        id: 'send_new_messages',
+        title: 'Отправка добивов',
+        textContent: '❀',
+        style: 'background: forestgreen ;color: white;'
+    });
+
+    send_finish_off.addEventListener('click', function () {
+        send_finish_off.disabled = true;
+        console.warn('send_finish_off');
+    });
+
+    const send_finish_off_for_online_users = GM_addElement(nh_actions, 'button', {
+        id: 'send_new_messages',
+        title: 'Отправка добивов только юзерам онлайн и с интервалом',
+        textContent: '✾',
+        style: 'background: darkgreen;color: white;'
+    });
+
+    send_finish_off_for_online_users.addEventListener('click', function () {
+        send_finish_off_for_online_users.disabled = true;
+        console.warn('send_finish_off_for_online_users');
+    });
+
+
+
+
+    const open_settings = GM_addElement(nh_actions, 'button', {
+        id: 'open_settings',
+        title: 'Настройки',
+        textContent: '✑',
+        style: 'background: dodgerblue;color: white;'
+    });
+    open_settings.addEventListener('click', function () {
+        helper.classList.toggle("show");
+        if (helper.classList.contains('show')) {
+            print_text_fields();
         }
+    });
 
 
-
-    }
-
-
-    GM_addStyle(
-        '#root, .root-wrap, .user-online, body, html { background: powderblue; } \
-        .content-chat--chat { background: white } \
-        #natalidate_helper {    \
-            display: flex;\
-            flex-direction: column;\
-            gap: 1rem;\
-            width: 25%;\
-            position: absolute;\
-            z-index: 100;\
-            right: 0;\
-            top: 0;\
-            bottom: 0;\
-            padding: 20px;\
-            position: fixed;\
-            background: linear-gradient(0deg, #e4ff00, #3c0af5);}\
-       .nh__text{ display: inline-flex;\
-                width: 100% !important;\
-                background: cyan;\
-                padding: 5px;\
-                min-height: 100px;\
-        } \
-        #nh__list {\
-           display: flex;\
-           flex-direction: column;\
-           gap: 1rem;\
-           overflow-y: scroll;\
-           height: calc(100vh - 120px)\
-       }\
-     '
-    );
 
 
     // ----------------------------------------  settings --------------------------------------------------
 
     const helper = GM_addElement(document.getElementsByTagName('body')[0], 'div', {
-        id: 'natalidate_helper'
+        class: 'natalidate_helper'
+    });
+    const close_settings = GM_addElement(helper, 'button', {
+        id: 'close_settings',
+        class: 'close_settings',
+        title: 'Закрыть',
+        textContent: '✖',
+        style: 'background: white;border-radius: 50%;width: 25px;height: 25px;'
+    });
+    close_settings.addEventListener('click', function () {
+        helper.classList.toggle("show");
     });
 
     const form = GM_addElement(helper, 'form', {
@@ -613,13 +654,9 @@
     });
 
 
-    const close_settings = GM_addElement(form, 'button', {
-        id: 'close_settings',
-        class: 'close_settings',
-        title: 'Закрыть',
-        textContent: '✖',
-        style: 'background: white;border-radius: 50%;width: 25px;height: 25px;margin: 0 0 1rem;'
-    });
+
+
+
 
     const list = GM_addElement(form, 'div', {
         id: 'nh__list',
@@ -661,7 +698,7 @@
 
     function print_text_fields() {
         list.innerHTML = '';
-
+        let settings = get_data();
         if (settings?.phrases?.length) {
             let i = 0;
             while (i < settings.phrases.length) {
@@ -673,7 +710,6 @@
         }
 
     }
-    print_text_fields();
 
     function add_field(text = '') {
         GM_addElement(list, 'textarea', {
@@ -689,11 +725,68 @@
         let form_phrases = data.getAll('phrases[]');
         form_phrases = form_phrases.map(element => element.trim()).filter(word => word.length > 0);
         console.warn(form_phrases);
-        settings = save_data(form_phrases);
+        save_data(form_phrases);
         // SAVE FIELDS
         print_text_fields();
 
         return false;
     });
+
+    // -------------------------------     Styles      ------------------------------------ 
+    GM_addStyle(
+        '\
+        #root, .root-wrap, .user-online, body, html { background: powderblue; } \
+        .content-chat--chat { background: white } \
+        .natalidate_helper {    \
+            display: none;\
+            flex-direction: column;\
+            gap: 1rem;\
+            width: 25%;\
+            max-width: 100%;\
+            position: absolute;\
+            z-index: 100;\
+            right: 0;\
+            top: 0;\
+            bottom: 0;\
+            padding: 20px;\
+            position: fixed;\
+            background: linear-gradient(0deg, #e4ff00, #3c0af5);}\
+       .nh__text{ display: inline-flex;\
+                width: 100% !important;\
+                background: cyan;\
+                padding: 5px;\
+                min-height: 100px;\
+        } \
+        #nh__list {\
+           display: flex;\
+           flex-direction: column;\
+           gap: 1rem;\
+           overflow-y: scroll;\
+           height: calc(100vh - 120px)\
+       }\
+       .show {display: flex;}\
+       #nh_actions {\
+        background: white;\
+        min-width: 50px;\
+        position: fixed;\
+        top: 0;\
+        bottom: 0;\
+        right: 0;\
+        border-radius: 20px 0px 0 20px;\
+        z-index: 50;\
+        box-shadow: 0 0 10px black;\
+        justify-content: center; \
+        display: flex;\
+        align-items: center;\
+        flex-direction: column;\
+       }\
+       #nh_actions button{\
+        border-radius: 50%;width: 40px;height: 40px;margin: 0 0 1rem;font-size: 1.6rem;\
+       }\
+       #nh_actions button[disabled]{\
+        opacity: 0.4;\
+       }\
+     '
+    );
 
 })();
