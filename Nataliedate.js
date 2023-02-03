@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Nataliedate
 // @namespace    http://tampermonkey.net/
-// @version      1.5.0
+// @version      1.5.1
 // @description  try to take over the world!
 // @author       andxbes
 // @match        https://nataliedate.com/*
@@ -465,9 +465,12 @@
 
 
 
+    const nh_actions_wrapp = GM_addElement(document.getElementsByTagName('body')[0], 'div', {
+        class: 'nh_actions_wrapp',
+    });
 
-    const nh_actions = GM_addElement(document.getElementsByTagName('body')[0], 'div', {
-        id: 'nh_actions',
+    const nh_actions = GM_addElement(nh_actions_wrapp, 'div', {
+        class: 'nh_actions',
     });
 
 
@@ -604,10 +607,10 @@
     });
     const close_settings = GM_addElement(helper, 'button', {
         id: 'close_settings',
-        class: 'close_settings',
+        class: 'close_settings btn',
         title: 'Закрыть',
         textContent: '✖',
-        style: 'background: white;border-radius: 50%;width: 25px;height: 25px;'
+        style: 'border-radius: 50%;display: inline-flex;width: auto;color: white;font-weight: 900;    margin-right: auto;padding: 0;'
     });
     close_settings.addEventListener('click', function () {
         helper.classList.toggle("show");
@@ -629,7 +632,7 @@
     const nh__buttons = GM_addElement(form, 'div', {
         id: 'nh__buttons',
         class: 'nh__buttons',
-        style: 'display: flex;gap: 1rem;margin: 1rem 0;justify-content: space-between;'
+        style: 'display: flex;margin: 1rem 0;justify-content: space-between;'
     });
 
     GM_addElement(nh__buttons, 'button', {
@@ -705,7 +708,7 @@
             display: none;\
             flex-direction: column;\
             gap: 1rem;\
-            width: 25%;\
+            width: 40%;\
             max-width: 100%;\
             position: absolute;\
             z-index: 100;\
@@ -717,25 +720,30 @@
             background: linear-gradient(0deg, #e4ff00, #3c0af5);}\
        .nh__text{ display: inline-flex;\
                 width: 100% !important;\
-                background: cyan;\
-                padding: 5px;\
-                min-height: 100px;\
+                background: greenyellow;\
+                border-radius: 8px;\
+                padding: 7px;\
+                min-height: 6.25rem;\
         } \
         #nh__list {\
            display: flex;\
            flex-direction: column;\
            gap: 1rem;\
            overflow-y: scroll;\
-           height: calc(100vh - 120px)\
+           height: calc(100vh - 7rem);\
        }\
        .show {display: flex;}\
-       #nh_actions {\
-        background: white;\
-        min-width: 50px;\
+       .nh_actions_wrapp{\
         position: fixed;\
         top: 0;\
         bottom: 0;\
         right: 0;\
+        display: flex;\
+        align-items: center;\
+       }\
+       .nh_actions {\
+        background: white;\
+        min-width: 50px;\
         border-radius: 20px 0px 0 20px;\
         z-index: 50;\
         box-shadow: 0 0 10px black;\
@@ -743,13 +751,31 @@
         display: flex;\
         align-items: center;\
         flex-direction: column;\
+        padding: 0.6rem;\
+        gap: 0.6rem;\
        }\
-       #nh_actions button{\
-        border-radius: 50%;width: 40px;height: 40px;margin: 0 0 1rem;font-size: 1.6rem;\
+       .nh_actions button{\
+        border-radius: 50%;width: 2.5rem;height: 2.5rem;margin: 0 0 1rem;font-size: 1.6rem;margin:0;\
        }\
-       #nh_actions button[disabled]{\
+       .nh_actions button[disabled]{\
         opacity: 0.4;\
        }\
+       @media (max-width: 770px){\
+         .header-wrapper{\
+            padding-top: 0px;  \
+         }    \
+         .natalidate_helper{\
+            width: 70%;     \
+         }\
+         .acc-menu {\
+            position: absolute;\
+            top: 20px;\
+            right: 10px;\
+        }\
+        .sidebar__mobile, .overlay {\
+            top: 65px;\
+        }\
+       } \
      '
     );
 
