@@ -736,23 +736,25 @@
        .nh_actions_wrapp{\
         position: fixed;\
         top: 0;\
-        bottom: 0;\
         right: 0;\
+        left: 0;\
         display: flex;\
-        align-items: center;\
+        justify-content: center;\
+        pointer-events: none;\
+        z-index: 50;\
        }\
        .nh_actions {\
+        pointer-events: auto;\
         background: white;\
         min-width: 50px;\
-        border-radius: 20px 0px 0 20px;\
-        z-index: 50;\
+        /*border-radius: 20px 0px 0 20px;*/\
         box-shadow: 0 0 10px black;\
         justify-content: center; \
         display: flex;\
         align-items: center;\
-        flex-direction: column;\
         padding: 0.6rem;\
         gap: 0.6rem;\
+        border-radius: 0 0px 20px 20px;\
        }\
        .nh_actions button{\
         border-radius: 50%;width: 2.5rem;height: 2.5rem;margin: 0 0 1rem;font-size: 1.6rem;margin:0;\
