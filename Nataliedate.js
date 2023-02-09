@@ -730,7 +730,7 @@
            flex-direction: column;\
            gap: 1rem;\
            overflow-y: scroll;\
-           height: calc(100vh - 7rem);\
+           height: calc(100vh - 10rem);\
        }\
        .show {display: flex;}\
        .nh_actions_wrapp{\
