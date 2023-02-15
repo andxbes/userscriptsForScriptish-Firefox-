@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Nataliedate
 // @namespace    http://tampermonkey.net/
-// @version      1.5.3
+// @version      1.5.4
 // @description  try to take over the world!
 // @author       andxbes
 // @match        https://nataliedate.com/*
@@ -258,7 +258,7 @@
                             get_unpaid_only_users(func, endFunc, only_online, perPage, ++page);
                         } else {
                             console.warn('Отправлено сообщений', allSuccessSended);
-                            console.warn('Ошибочных,часто повторяемых, фраз', errorPhrases.sort((a, b) => b.count - a.count));
+                            //console.warn('Ошибочных,часто повторяемых, фраз', errorPhrases.sort((a, b) => b.count - a.count));
                             if (only_online) {
                                 console.warn('Повторим перебор через  минуту');
                                 setTimeout(() => {
@@ -538,7 +538,7 @@
 
     const send_finish_off_for_online_users = GM_addElement(nh_actions, 'button', {
         id: 'send_new_messages',
-        title: 'Отправка добивов только юзерам онлайн и с интервалом',
+        title: 'Отправка добивов, только юзерам онлайн с перепроверкой через минуту (бесконечно)',
         textContent: '✾',
         style: 'background: darkgreen;color: white;'
     });
@@ -699,6 +699,74 @@
         return false;
     });
 
+    //------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------------
+    //------------------------------------ Popular phrases -------------------------------------
+    //------------------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------------------
+
+    const popular_phrases_container = GM_addElement(document.getElementsByTagName('body')[0], 'div', {
+        class: 'popular-phrases-container'
+    });
+
+    const popular_phrases_actions = GM_addElement(popular_phrases_container, 'div', {
+        class: 'popular-phrases__actions'
+    });
+    const close_popular_phrases_container = GM_addElement(popular_phrases_actions, 'button', {
+        class: 'close-popular-phrases-container btn',
+        title: 'Закрыть',
+        textContent: '✖',
+        style: 'border-radius: 50%;display: inline-flex;width: auto;color: white;font-weight: 900;    margin-right: auto;padding: 0;'
+    });
+    GM_addElement(popular_phrases_container, 'h3', {
+        class: 'popular-phrases__actions',
+        textContent: "Последние фразы, которых нет в цепочке, с количеством чатов где они остались последними.",
+        style: 'color: white;margin: 1rem 0;'
+
+    });
+    const popular_phrases_list = GM_addElement(popular_phrases_container, 'div', {
+        class: 'popular-phrases__list'
+    });
+
+    const more_popular_phrases = GM_addElement(nh_actions, 'button', {
+        title: 'Частые, последние фразы, вне цепочки, когда либо написанные юзеру (Доступно во время рассылки добивов)',
+        textContent: '📬',
+        style: 'background: black;color: white;'
+    });
+
+    more_popular_phrases.addEventListener('click', function () {
+        popular_phrases_container.classList.toggle("show");
+        if (popular_phrases_container.classList.contains('show')) {
+
+            //print_text_fields();
+            // errorPhrases
+            if (errorPhrases.length > 0) {
+                popular_phrases_list.innerHTML = '';
+
+                let errorPhrases_sorted = errorPhrases.sort((a, b) => b.count - a.count);
+
+                for (let eph = 0; eph < errorPhrases_sorted.length & eph < 20; eph++) {
+                    let nh__phrases__row = GM_addElement(popular_phrases_list, 'div', {
+                        class: 'nh__phrases__row',
+                    });
+                    GM_addElement(nh__phrases__row, 'span', {
+                        class: 'nh__count',
+                        textContent: errorPhrases_sorted[eph].count
+                    });
+                    GM_addElement(nh__phrases__row, 'textarea', {
+                        class: 'nh__text',
+                        textContent: errorPhrases_sorted[eph].text
+                    });
+                }
+            }
+        }
+    });
+
+
+    close_popular_phrases_container.addEventListener('click', function () {
+        popular_phrases_container.classList.toggle("show");
+    });
+
     // -------------------------------     Styles      ------------------------------------ 
     GM_addStyle(
         '\
@@ -710,7 +778,6 @@
             gap: 1rem;\
             width: 40%;\
             max-width: 100%;\
-            position: absolute;\
             z-index: 100;\
             right: 0;\
             top: 0;\
@@ -725,14 +792,17 @@
                 padding: 7px;\
                 min-height: 6.25rem;\
         } \
-        #nh__list {\
+        #nh__list,\
+        .popular-phrases__list{\
            display: flex;\
            flex-direction: column;\
            gap: 1rem;\
            overflow-y: scroll;\
+        }\
+        #nh__list {\
            height: calc(100vh - 10rem);\
        }\
-       .show {display: flex;}\
+       .show {display: flex !important;}\
        .nh_actions_wrapp{\
         position: fixed;\
         top: 0;\
@@ -761,6 +831,35 @@
        }\
        .nh_actions button[disabled]{\
         opacity: 0.4;\
+       }\
+       .popular-phrases-container{\
+        display: none;\
+        flex-direction: column;\
+        gap: 1rem;\
+        z-index: 100;\
+        right: 0;\
+        left: 0;\
+        top: 20vh;\
+        bottom: 0;\
+        padding: 20px;\
+        position: fixed;\
+        background: linear-gradient(0deg, #e4ff00, #3c0af5);\
+       }\
+       .nh__phrases__row{\
+        display:flex;\
+        gap: 1rem;\
+        align-items: center;\
+        flex-shrink: 0;\
+       }\
+       .nh__count{\
+        display: flex;\
+        aspect-ratio: 1 / 1;\
+        background: white;\
+        border-radius: 50%;\
+        flex-shrink: 1;\
+        padding: 0.5rem;\
+        justify-content: center;\
+        align-items: center;\
        }\
        @media (max-width: 770px){\
          .header-wrapper{\
