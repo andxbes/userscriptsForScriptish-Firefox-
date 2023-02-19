@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Nataliedate
 // @namespace    http://tampermonkey.net/
-// @version      1.5.4
+// @version      1.5.5
 // @description  try to take over the world!
 // @author       andxbes
 // @match        https://nataliedate.com/*
@@ -19,9 +19,6 @@
     const STORAGE_KEY = 'user_settings_andxbes_';
     const CHAT_EXCEPTION = 'chat_exception';
     const CHAT_INFOS = 'chat_info';
-
-    // let settings = JSON.parse(localStorage.getItem(STORAGE_KEY + get_current_id()));
-
 
     let errorPhrases = [];
     let allSuccessSended = 0;
@@ -86,26 +83,6 @@
 
         return result;
     };
-
-    //TODO deprecated
-    function set_phrases() {
-        let phrases = [];
-        let settings = get_data();
-        if (settings?.phrases?.length > 0 && confirm(`Оставить предыдущие фразы ?\n${settings.phrases.join('\n ---------------------- \n')} `)) {
-            phrases = settings.phrases;
-        } else {
-            phrases.push(prompt('Введите первую фразу', ''));
-
-            for (let i = 1; confirm(`Добавить следующую добивную фразу в цепочку ?`); i++) {
-                let fr = prompt(`Введите добивную фразу №${i}`, '');
-                if (fr !== null && fr !== '') {
-                    phrases.push(fr);
-                }
-            }
-
-        }
-        return phrases;
-    }
 
     //Получаем историю переписки
     //     function get_chat_info(chat_id, func){
@@ -796,7 +773,7 @@
         .popular-phrases__list{\
            display: flex;\
            flex-direction: column;\
-           gap: 1rem;\
+           gap: 2rem;\
            overflow-y: scroll;\
         }\
         #nh__list {\
