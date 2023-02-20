@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Nataliedate
 // @namespace    http://tampermonkey.net/
-// @version      1.5.5
+// @version      1.5.6
 // @description  try to take over the world!
 // @author       andxbes
 // @match        https://nataliedate.com/*
@@ -151,7 +151,7 @@
     }
 
 
-    function need_send_messages(messages, self_count) {
+    function need_send_messages(messages) {
         let result = false;
         if (Array.isArray(messages) && messages.length > 0) {
             let him_messages = messages.filter(x => {
@@ -194,21 +194,24 @@
             }
             result = result.trim();
         }
-
-        if (result === '') {
-
-            let index = errorPhrases.find((element) => element.text === last_message);
-            if (index != undefined) {
-                index.count++;
-            } else {
-                errorPhrases.push({
-                    'text': last_message,
-                    'count': 1
-                });
-            }
-        }
-
         return result;
+    }
+
+
+    function detect_unused_phrases(last_message, user_id = 0) {
+        let index = errorPhrases.find((element) => element.text === last_message);
+        if (index != undefined) {
+            if (index.users_id.indexOf(user_id) === -1) {
+                index.count++;
+                index.users_id.push(user_id);
+            }
+        } else {
+            errorPhrases.push({
+                'text': last_message,
+                'count': 1,
+                'users_id': [user_id]
+            });
+        }
     }
 
 
@@ -267,8 +270,15 @@
         if (body?.items && body.items.length > 0) {
 
             let need_send_chats = body.items.filter((chat) => {
-                return chat.lastMessage && need_send_messages([chat.lastMessage]) &&
-                    select_phrase(chat.lastMessage?.content) !== '';
+
+                let phrase = select_phrase(chat.lastMessage?.content);
+                let user_id = chat.profileInfo?.profileId;
+
+                if (phrase === '') {
+                    detect_unused_phrases(chat.lastMessage?.content, user_id);
+                }
+
+                return chat.lastMessage && need_send_messages([chat.lastMessage]) && phrase !== '';
             })
 
             let profileInfo = array_column(need_send_chats, 'profileInfo');
@@ -292,10 +302,14 @@
         if (self_count > 0) {
 
             let last_messaage = you_messages[self_count - 1];
-            let frase = select_phrase(last_messaage?.content);
+            let phrase = select_phrase(last_messaage?.content);
+
+            if (phrase === '') {
+                detect_unused_phrases(last_messaage?.content, user_id);
+            }
 
             //console.warn('Попытка отправить ',user_id , last_messaage?.chatId, frase);
-            await send_to_chatid(last_messaage?.chatId, frase,
+            await send_to_chatid(last_messaage?.chatId, phrase,
                 (body) => {
                     //console.warn('Отправлено добивочное',user_id , body,' Предыдущее сообщение: ', messages);
                     allSuccessSended++;
