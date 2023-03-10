@@ -482,13 +482,24 @@
 
         get_users_by_search(
             (body) => {
+                /* user.datingPurpose
+                1: Отношения
+                2: Создание семьи
+                3: Дружба
+                4: Деловые контакты
+                5: Путешествия
+                6: Занятия спортом
+                7: Флирт
+                */
+
+
                 let f_profiles = body.items.filter(el => {
                     return el.gender == 1 && el.age >= 23;
                 });
                 let f_gerl_profiles = body.items.filter(el => {
                     return el.gender != 1;
                 });
-
+                //TODO вывести профили девушек
                 gerl_profiles.push(...f_gerl_profiles);
                 search_profiles.push(...f_profiles);
 
