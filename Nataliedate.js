@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Nataliedate
 // @namespace    http://tampermonkey.net/
-// @version      1.5.6
+// @version      1.6.0
 // @description  try to take over the world!
 // @author       andxbes
 // @match        https://nataliedate.com/*
@@ -85,41 +85,27 @@
     };
 
     //Получаем историю переписки
-    //     function get_chat_info(chat_id, func){
-    //         if(chat_id){
-    //             fetch('https://engbkprod2.azurewebsites.net/api/chats/' + chat_id + '/messages?itemsPerPage=9&page=1&minMessageId=0' , {
-    //                 method: 'GET',
-    //                 cache: 'no-cache',
-    //                 headers: {
-    //                     "authorization": "Bearer " + get_user_token()
-    //                 }
-    //             })
-    //                 .then(response => {
-    //                 console.warn(response);
-    //                 if(response.ok !== true){
-    //                     throw CHAT_EXCEPTION;
-    //                 }
+    async function get_chat_info(chat_id) {
+        let result = null;
+        if (chat_id) {
+            let response = await fetch(`https://engbkprod2.azurewebsites.net/api/chats/${chat_id}/messages?itemsPerPage=9&page=1&minMessageId=0`, {
+                method: 'GET',
+                cache: 'no-cache',
+                headers: {
+                    "authorization": "Bearer " + get_user_token()
+                }
+            });
 
-    //                 return response.json()
-    //             })
-    //                 .then(body => {
+            if (response.ok === true) {
+                let body = await response.json();
 
-    //                 if(need_send_messages(body?.items)){
-
-    //                     console.warn('Надо отправить', body.items,'всего сообщений ',body.items.length );
-
-    //                     func(body.items);
-
-    //                 }else{
-    //                     //console.warn('Не нужно отправлять',chat_id , body.items);
-    //                 }
-
-    //             })
-    //                 .catch(error => {
-    //                 console.error(error);
-    //             });
-    //         }
-    //     }
+                if (need_send_messages(body?.items)) {
+                    result = body?.items;
+                }
+            }
+        }
+        return result;
+    }
 
     //Если первая ссылка не отдает список , последний способ узнать о наличии сообщений , проверить послдеднее сообщение , и если его нет , то это 100% нужно отправить 1 е
     async function get_chat_info__2(user_id, func) {
@@ -581,6 +567,18 @@
         } else {
             send_by_ids.disabled = false;
         }
+    });
+
+
+    GM_addElement(nh_actions, 'button', {
+        id: 'send_retention',
+        title: 'Отправка всем "Retention" текста, который нужно будет ввести после нажатия',
+        textContent: '⏱',
+        style: 'background: red; color: white'
+    }).addEventListener('click', function () {
+        //https://engbkprod2.azurewebsites.net/api/chats/me?page=0&perPage=25&unreadOnly=false&unpaidOnly=false&paidOnly=false&onlineOnly=false&retentionOnly=true&dialogOnly=false&favoriteOnly=false&answerFirstOnly=false&disabledFilters=unpaid%2Cpaid%2CanswerFirst%2Cfavorite
+
+        console.warn('send_retention', this);
     });
 
 
