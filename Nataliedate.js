@@ -201,7 +201,7 @@
     }
 
 
-    function get_unpaid_only_users(func, endFunc, only_online = false, perPage = 100, page = 0) {
+    function get_unpaid_only_users(func, endFunc, only_online = false, perPage = 100, page = 1) {
         fetch(`https://engbkprod2.azurewebsites.net/api/chats/me?page=${page}&perPage=${perPage}&unreadOnly=false&unpaidOnly=true&paidOnly=false&onlineOnly=${only_online}&retentionOnly=false&dialogOnly=false&favoriteOnly=false&answerFirstOnly=false&disabledFilters=paid,retain,favorite`, {
             method: 'GET',
             cache: 'no-cache',
@@ -246,7 +246,108 @@
                 console.error('END 2', error);
                 endFunc();
             });
+    }
 
+    //TODO Будущая замена для get_unpaid_only_users , где все параметры уходят в options,
+    //  а only_online разбивается на 2 значения (как параметр запроса  onlineOnly и значение recursive)
+    function get_chats(func, endFunc, recursive = false, options = {}) {
+
+        const chat_request = new URL('https://engbkprod2.azurewebsites.net/api/chats/me');
+        const defaultOptions = {
+            page: 1,
+            perPage: 100,
+            unreadOnly: 'false',
+            unpaidOnly: 'true',
+            paidOnly: 'false',
+            onlineOnly: 'false',
+            retentionOnly: 'false',
+            dialogOnly: 'false',
+            favoriteOnly: 'false',
+            answerFirstOnly: 'false',
+            disabledFilters: 'paid,retain,favorite'
+        }
+        let opt = Object.assign(defaultOptions, options);
+
+        Object.entries(opt).forEach(entry => {
+            const [key, value] = entry;
+            chat_request.searchParams.set(key, value);
+        });
+
+        console.warn(chat_request.toString());
+
+        fetch(chat_request.toString(), {
+            method: 'GET',
+            cache: 'no-cache',
+            headers: {
+                "authorization": "Bearer " + get_user_token(),
+            },
+        })
+            .then(response => {
+                if (response.ok !== true) {
+                    throw CHAT_INFOS;
+                }
+
+                return response.json()
+            })
+            .then(body => {
+                func(body, opt.page).then(
+                    () => {
+                        if (body.items.length > 0) {
+                            opt.page++;
+                            get_chats(func, endFunc, recursive, opt);
+                        } else {
+                            console.warn('Отправлено сообщений', allSuccessSended);
+                            //console.warn('Ошибочных,часто повторяемых, фраз', errorPhrases.sort((a, b) => b.count - a.count));
+                            if (recursive) {
+                                console.warn('Повторим перебор через  минуту');
+                                setTimeout(() => {
+                                    opt.page = 1;
+                                    get_chats(func, endFunc, recursive, opt);
+                                }, (1.5 * 60 * 1000));
+
+                            } else {
+                                throw "Конец чатов";
+                            }
+                        }
+                    }
+                ).catch(error => {
+                    console.error('END 1', error);
+                    endFunc();
+                });
+
+            })
+            .catch(error => {
+                console.error('END 2', error);
+                endFunc();
+            });
+    }
+
+
+    async function show_list(body, page) {
+        console.warn('process on ' + page, body);
+        if (body?.items && body.items.length > 0) {
+            console.info(body?.items);
+            // let need_send_chats = body.items.filter((chat) => {
+
+            //     let phrase = select_phrase(chat.lastMessage?.content);
+            //     let user_id = chat.profileInfo?.profileId;
+
+            //     if (phrase === '') {
+            //         detect_unused_phrases(chat.lastMessage?.content, user_id);
+            //     }
+
+            //     return chat.lastMessage && need_send_messages([chat.lastMessage]) && phrase !== '';
+            // })
+
+            // let profileInfo = array_column(need_send_chats, 'profileInfo');
+
+            // let users = array_column(profileInfo, 'profileId');
+
+            // let for_users = users.slice();
+            // console.warn('Не Будет отправлено для :', for_users);
+            // ------------------------------------------------------- Перебор юзеров ------------------------------------------------------------------------
+            // await process(for_users);
+        }
 
     }
 
@@ -520,7 +621,7 @@
         get_unpaid_only_users(process_chats,
             () => {
                 send_finish_off.disabled = false;
-            }, false, 500, 0);
+            }, false, 500);
 
     });
 
@@ -538,7 +639,7 @@
         get_unpaid_only_users(process_chats,
             () => {
                 send_finish_off_for_online_users.disabled = false;
-            }, true, 500, 0);
+            }, true, 500);
 
     });
 
@@ -577,8 +678,27 @@
         style: 'background: red; color: white'
     }).addEventListener('click', function () {
         //https://engbkprod2.azurewebsites.net/api/chats/me?page=0&perPage=25&unreadOnly=false&unpaidOnly=false&paidOnly=false&onlineOnly=false&retentionOnly=true&dialogOnly=false&favoriteOnly=false&answerFirstOnly=false&disabledFilters=unpaid%2Cpaid%2CanswerFirst%2Cfavorite
+        const that = this;
+        that.disabled = true;
+        get_chats(
+            show_list,
+            () => {
+                that.disabled = false;
+            }, false
+            , {
+                perPage: 500,
+                unreadOnly: 'false',
+                unpaidOnly: 'false',
+                paidOnly: 'false',
+                onlineOnly: 'false',
+                retentionOnly: 'true',
+                dialogOnly: 'false',
+                favoriteOnly: 'false',
+                answerFirstOnly: 'false',
+                disabledFilters: 'unpaid,paid,answerFirst,favorite'
+            });
 
-        console.warn('send_retention', this);
+        console.warn('send_retention', that);
     });
 
 
