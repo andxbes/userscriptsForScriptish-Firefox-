@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Nataliedate
 // @namespace    http://tampermonkey.net/
-// @version      1.5.6
+// @version      1.5.7
 // @description  try to take over the world!
 // @author       andxbes
 // @match        https://nataliedate.com/*
@@ -302,18 +302,20 @@
         if (self_count > 0) {
 
             let last_messaage = you_messages[self_count - 1];
-            let phrase = select_phrase(last_messaage?.content);
+            //Могут быть сообщения с картинками, на которые у нас не предусмотрены добивы
+            if (last_messaage?.content != null && last_messaage.content != '') {
+                let phrase = select_phrase(last_messaage.content);
 
-            if (phrase === '') {
-                detect_unused_phrases(last_messaage?.content, user_id);
+                if (phrase === '') {
+                    detect_unused_phrases(last_messaage.content, user_id);
+                }
+
+                await send_to_chatid(last_messaage?.chatId, phrase,
+                    (body) => {
+                        //console.warn('Отправлено добивочное',user_id , body,' Предыдущее сообщение: ', messages);
+                        allSuccessSended++;
+                    });
             }
-
-            //console.warn('Попытка отправить ',user_id , last_messaage?.chatId, frase);
-            await send_to_chatid(last_messaage?.chatId, phrase,
-                (body) => {
-                    //console.warn('Отправлено добивочное',user_id , body,' Предыдущее сообщение: ', messages);
-                    allSuccessSended++;
-                });
         } else if (messages.length === 0) {
             //let win = window.open(`https://nataliedate.com/profile/${user_id}?self_count=${self_count}`);
 
