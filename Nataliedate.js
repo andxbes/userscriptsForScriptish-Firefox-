@@ -98,10 +98,11 @@
 
             if (response.ok === true) {
                 let body = await response.json();
+                // console.info(body?.items);
 
-                if (need_send_messages(body?.items)) {
-                    result = body?.items;
-                }
+                // if (need_send_messages(body?.items)) {
+                result = body?.items;
+                // }
             }
         }
         return result;
@@ -136,6 +137,11 @@
         }
     }
 
+
+    // TODO надо проверять последнее сообщение,
+    // если оно пустое, но не пустое поле imagesUrls, 
+    // и запретить отправку , так как мы не отправляем добивы на картинки 
+    // 
 
     function need_send_messages(messages) {
         let result = false;
@@ -323,10 +329,12 @@
     }
 
 
+    //заглушка функции process_chats
     async function show_list(body, page) {
         console.warn('process on ' + page, body);
         if (body?.items && body.items.length > 0) {
             console.info(body?.items);
+
             // let need_send_chats = body.items.filter((chat) => {
 
             //     let phrase = select_phrase(chat.lastMessage?.content);
@@ -348,7 +356,6 @@
             // ------------------------------------------------------- Перебор юзеров ------------------------------------------------------------------------
             // await process(for_users);
         }
-
     }
 
 
