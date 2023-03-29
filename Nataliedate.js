@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Nataliedate
 // @namespace    http://tampermonkey.net/
-// @version      1.5.7
+// @version      1.5.8
 // @description  try to take over the world!
 // @author       andxbes
 // @match        https://nataliedate.com/*
@@ -165,15 +165,15 @@
             });
             let diff_In_Hours = 99;
             if (you_messages.length > 0) {
-                let current = new Date();
+                let now = new Date();
+                let currentUtc = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
                 let last = new Date(you_messages[0].creationDate);
-                diff_In_Hours = Math.floor((current - last) / (1000 * 60 * 60));
+
+                diff_In_Hours = Math.floor((currentUtc - last) / (1000 * 60 * 60));
             }
-            let last_12 = diff_In_Hours > 2; // 2 часа
+            let true_interval = diff_In_Hours >= 2; // 2 часа
 
-            //console.warn('последнее сообщение отправлено ', diff_In_Hours, 'есть сообщение клиента' , !only_you_messages, 'твоих сообщений', you_messages);
-
-            result = only_you_messages && last_12 && you_messages.length < 2;
+            result = only_you_messages && true_interval && you_messages.length < 2;
         }
         return result;
     }
