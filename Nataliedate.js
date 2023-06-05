@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Nataliedate
 // @namespace    http://tampermonkey.net/
-// @version      1.5.8
+// @version      1.5.8.1
 // @description  try to take over the world!
 // @author       andxbes
 // @match        https://nataliedate.com/*
@@ -26,6 +26,10 @@
     function get_data() {
         return JSON.parse(localStorage.getItem(STORAGE_KEY + get_current_id()));
     };
+
+    function clean_text(text = '') {
+        return text.replace(/\s+/g, ' ').trim();
+    }
 
     function save_data(phrases = [], users = []) {
         if (users.length > 0) {
@@ -183,6 +187,8 @@
         let settings = get_data();
         let result = '';
         let phrases = settings?.phrases;
+
+        last_message = clean_text(last_message);
 
         if (phrases.length > 0 && last_message != undefined) {
             let index = -1;
@@ -694,7 +700,9 @@
         e.preventDefault();
         var data = new FormData(form);
         let form_phrases = data.getAll('phrases[]');
-        form_phrases = form_phrases.map(element => element.trim()).filter(word => word.length > 0);
+        form_phrases = form_phrases.map((element) => {
+            return clean_text(element);
+        }).filter(word => word.length > 0);
         console.warn(form_phrases);
         save_data(form_phrases);
         // SAVE FIELDS
